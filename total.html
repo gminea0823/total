@@ -1572,6 +1572,7 @@ cloudLoad(); // ← 클라우드에서 최신 데이터 불러오기 (연결됐�
   button.status-btn.pending{background:#EEF1F4;color:#9AA6B2;border-color:#D5DDE5}
   button.status-btn.type-il{background:#E3F2FD;color:#1565C0;border-color:#42A5F5}
   button.status-btn.type-ju{background:#F3E5F5;color:#6A1B9A;border-color:#AB47BC}
+  button.status-btn.type-so{background:#FDECEC;color:#C62828;border-color:#EF7A7A}
   button.status-btn.none{background:#EEF1F4;color:#9AA6B2;border-color:#D5DDE5}
   button.status-btn:hover{filter:brightness(.97)}
   .search-bar{display:flex;align-items:center;gap:8px;margin-bottom:1rem}
@@ -2076,16 +2077,17 @@ function toggleStatus(i, field, btn){
 }
 
 function settleTypeClass(v){
-  return v==='일선정산' ? 'type-il' : v==='주정산' ? 'type-ju' : 'none';
+  return v==='일선정산' ? 'type-il' : v==='주정산' ? 'type-ju' : v==='보험료 소급' ? 'type-so' : 'none';
 }
 
 function settleTypeLabel(v){
-  return v==='일선정산' ? '일선정산' : v==='주정산' ? '주정산' : '-';
+  return v==='일선정산' ? '일선정산' : v==='주정산' ? '주정산' : v==='보험료 소급' ? '보험료 소급' : '-';
 }
 
-// 일선정산 ↔ 주정산 토글 (빈칸 → 일선정산 → 주정산 → 일선정산 ...)
+// 일선정산 → 주정산 → 보험료 소급 순환 (빈칸 → 일선정산 → 주정산 → 보험료 소급 → 일선정산 ...)
 function toggleSettleType(i, btn){
-  const val = rows[i].settleType==='일선정산' ? '주정산' : '일선정산';
+  const cur = rows[i].settleType;
+  const val = cur==='일선정산' ? '주정산' : cur==='주정산' ? '보험료 소급' : '일선정산';
   rows[i].settleType = val;
   btn.className = 'status-btn ' + settleTypeClass(val);
   btn.textContent = settleTypeLabel(val);
