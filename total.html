@@ -7,17 +7,19 @@
 <title>통합 정산 관리</title>
 <!--
   ============================================================
-  ■ 이 파일의 구조 (한 파일 안에 세 화면이 들어 있어요)
+  ■ 이 파일의 구조 (한 파일 안에 네 화면이 들어 있어요)
   ------------------------------------------------------------
   1) 맨 위 "탭 막대"  : 버튼을 누르면 화면이 바뀝니다.
   2) <template id="page-fee">    : 💳 수수료 지급표  (원본: 수수료/수수료 지급표.html)
   3) <template id="page-settle"> : 🧾 정산 현황 관리 (원본: settlement/index.html)
-  4) <template id="page-todo">   : ✅ 업무 투두 (캘린더형 할 일 목록, 이 파일에서 새로 만듦)
+  4) <template id="page-rd">     : 📑 알디솔루션 정산 (정산 현황 관리의 알디솔루션 데이터 + 배민·쿠팡 일선정산)
+  5) <template id="page-todo">   : ✅ 업무 투두 (캘린더형 할 일 목록, 이 파일에서 새로 만듦)
 
   - 각 화면은 서로 섞이지 않도록 따로따로(칸막이 안에서) 실행됩니다.
   - 데이터는 두 원본과 똑같은 Supabase 저장소를 그대로 쓰므로
     지금까지 저장된 내용이 모두 그대로 보입니다.
   - 🔒 로그인해야 화면이 열립니다 (Supabase 로그인 계정 필요).
+  - 알디솔루션 정산 탭의 '확인용 파일 만들기'는 고른 주차만 담은 읽기 전용 html 파일을 내려받아요.
   - 탭을 하나 더 추가하려면: 아래 TABS 목록에 한 줄 추가 +
     <template id="page-새이름"> ... </template> 블록을 하나 더 붙이면 됩니다.
   ============================================================
@@ -79,6 +81,7 @@
 const TABS = [
   ["fee",    "💳 수수료 지급표",   0.9],   // 90% 크기로 보기
   ["settle", "🧾 정산 현황 관리", 1],
+  ["rd",     "📑 알디솔루션 정산", 1],
   ["todo",   "✅ 업무 투두",       1],
 ];
 
@@ -253,7 +256,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     letter-spacing: -0.2px;
     padding: 32px 20px 90px;
   }
-  .wrap { max-width: 1560px; margin: 0 auto; }
+  .wrap { max-width: 1389px; margin: 0 auto; }   /* 90% 배율로 보이므로 화면에서는 약 1250px (다른 탭과 같은 폭) */
 
   /* ===== 상단 제목 ===== */
   header.top {
@@ -305,16 +308,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     box-shadow: var(--shadow-sm); transition: .15s;
   }
   .search-bar:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-  .search-bar select {
-    border: none; background: transparent; height: 100%;
-    padding: 0 12px 0 16px; font-family: inherit; font-size: 14px; font-weight: 600;
-    color: var(--ink); cursor: pointer; border-right: 1px solid var(--line);
-  }
   .search-bar input {
     border: none; background: transparent; height: 100%;
     padding: 0 18px; font-family: inherit; font-size: 14px; width: 300px;
   }
-  .search-bar select:focus, .search-bar input:focus { outline: none; }
+  .search-bar input:focus { outline: none; }
 
   .hint { font-size: 13px; color: var(--ink-soft); margin: 2px 4px 14px; line-height: 1.7; }
 
@@ -479,6 +477,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   .grp-tools .grp-del { padding: 6px 11px; font-size: 12.5px; border-radius: 6px; color: var(--danger); border-color: #f2c9c6; }
   .grp-tools .grp-del:hover { background: #fdecea; border-color: #eeb4af; }
 
+  /* ===== 월 탭 ===== */
+  .mtabs { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 14px; padding-bottom: 12px; border-bottom: 1px solid var(--line-strong); }
+  .mtab { border: 1px solid var(--line-strong); background: #fff; color: var(--ink-soft); font-family: inherit; font-size: 13.5px; font-weight: 600; padding: 7px 15px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+  .mtab:hover { background: var(--accent-soft); color: var(--ink); }
+  .mtab.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .mtab .cnt { margin-left: 6px; font-size: 11.5px; font-weight: 500; opacity: .75; }
+  .mtab.zero { opacity: .45; }
+  .mtabs .grp-tools { margin-left: auto; }
+
   .empty-row td { text-align: center; padding: 54px 20px; color: var(--ink-soft); font-size: 14px; line-height: 1.8; }
   .empty-row b { color: var(--ink); }
 
@@ -498,7 +505,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   <!-- 요약 카드 -->
   <div class="stats">
-    <div class="stat"><div class="k">전체 건수</div><div class="v" id="stTotal">34건</div></div>
+    <div class="stat"><div class="k" id="stTotalLabel">전체 건수</div><div class="v" id="stTotal">34건</div></div>
     <div class="stat done"><div class="k">지급 완료</div><div class="v" id="stDone">12건</div></div>
     <div class="stat wait"><div class="k">지급 미완료</div><div class="v" id="stWait">22건</div></div>
     <div class="stat money"><div class="k">총 금액</div><div class="v" id="stAmount">71,433,496원</div></div>
@@ -516,13 +523,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     </div>
 
     <div class="search-bar">
-      <select id="searchField" onchange="render()">
-        <option value="branch">협력사별</option>
-        <option value="ceo">대표자별</option>
-        <option value="bank">은행별</option>
-        <option value="acct">계좌번호별</option>
-      </select>
-      <input id="searchText" placeholder="검색어를 입력하세요" oninput="render()">
+      <input id="searchText" placeholder="전체 항목에서 검색" oninput="render()">
     </div>
   </div>
 
@@ -533,7 +534,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     · 기간 그룹의 날짜를 지정하고 <b>이 그룹 날짜 일괄 지정</b>을 누르면 그 그룹에 속한 행만 바뀌고, 모든 내용은 이 브라우저에 <b>자동 저장</b>됩니다.
   </p>
 
-  <!-- 표 -->
+  <!-- 월 탭 + 표 -->
+  <div class="mtabs" id="monthTabs"></div>
   <div id="content"></div>
 
 </div>
@@ -600,6 +602,7 @@ let selected = new Set();   // 다중선택된 행 id (저장 안 함)
 let colFilters = {};        // { 컬럼키: Set(허용값) } — 조회 필터 (세션용)
 let sortState = null;       // { key, dir } — 정렬 (세션용)
 let menuState = null;       // 열린 필터 메뉴의 임시 상태
+let monthTab = load("fee_month_tab", "");   // 보고 있는 월 탭 ("ALL" = 전체, "" = 가장 최근 월)
 
 let colOrder = load(ORDER_KEY, null) || [...DEFAULT_ORDER];
 colOrder = colOrder.filter(k => COL_DEFS[k]);                       // 알 수 없는 키 제거
@@ -717,6 +720,7 @@ function addRow() {
     branch: "", ceo: "", acct: "", bank: "", amount: "",
     form: "미완료", pay: "미완료", invoice: "미완료", memo: ""
   });
+  if (monthTab !== "ALL") setMonthTab(today.slice(0, 7));
   save();
   render();
 }
@@ -778,6 +782,7 @@ function copyGroup(gid) {
     start: "", end: "", amount: "",
     form: "미완료", pay: "미완료", invoice: "미완료"
   })));
+  if (monthTab !== "ALL") setMonthTab("no-date");   // 복사본은 날짜가 비어 있어 '날짜 미지정' 탭에 들어감
   save();
   render();
 }
@@ -795,6 +800,7 @@ function copyMonth(mk) {
       form: "미완료", pay: "미완료", invoice: "미완료"
     };
   }));
+  if (monthTab !== "ALL") setMonthTab("no-date");
   save();
   render();
 }
@@ -846,7 +852,7 @@ function toggleSelect(id, el) {
   syncHeaderCheckbox();
 }
 function selectAll(check) {
-  const ids = getFiltered().map(r => r.id);
+  const ids = getVisible().map(r => r.id);
   if (check) ids.forEach(id => selected.add(id));
   else ids.forEach(id => selected.delete(id));
   render();
@@ -868,7 +874,7 @@ function refreshDelBtn() {
 function syncHeaderCheckbox() {
   const head = document.getElementById("chkAll");
   if (!head) return;
-  const filtered = getFiltered();
+  const filtered = getVisible();
   const selCount = filtered.filter(r => selected.has(r.id)).length;
   head.checked = filtered.length > 0 && selCount === filtered.length;
   head.indeterminate = selCount > 0 && selCount < filtered.length;
@@ -929,28 +935,70 @@ function rangeTitle(s, e) {
 function sumAmount(list) {
   return list.reduce((t, r) => t + (Number(r.amount) || 0), 0);
 }
+/* ---- 월 탭 ---- */
+function monthKeys() {
+  return [...new Set(rows.map(monthKeyRow))].sort((a, b) => {
+    if (a === "no-date") return 1;
+    if (b === "no-date") return -1;
+    return b.localeCompare(a);
+  });
+}
+function curTab() {
+  if (monthTab === "ALL") return "ALL";
+  const keys = monthKeys();
+  return keys.includes(monthTab) ? monthTab : (keys[0] || "ALL");
+}
+function setMonthTab(k) { monthTab = k; localStorage.setItem("fee_month_tab", JSON.stringify(k)); }
+function pickMonthTab(k) { setMonthTab(k); selected.clear(); render(); }
+function inTab(list, tab) { return tab === "ALL" ? list : list.filter(r => monthKeyRow(r) === tab); }
+function getVisible() { return inTab(getFiltered(), curTab()); }
+function renderMonthTabs(tab, filtered) {
+  const counts = {};
+  filtered.forEach(r => { const k = monthKeyRow(r); counts[k] = (counts[k] || 0) + 1; });
+  let html = `<button class="mtab${tab === "ALL" ? " on" : ""}" onclick="pickMonthTab('ALL')">전체<span class="cnt">${filtered.length}건</span></button>`;
+  monthKeys().forEach(k => {
+    const n = counts[k] || 0;
+    html += `<button class="mtab${tab === k ? " on" : ""}${n ? "" : " zero"}" onclick="pickMonthTab('${k}')">${monthTitle(k)}<span class="cnt">${n}건</span></button>`;
+  });
+  if (tab !== "ALL") html += `<span class="grp-tools">
+      <button class="grp-copy" onclick="copyMonth('${tab}')">📋 이 달 복사</button>
+      <button class="grp-del" onclick="deleteMonth('${tab}')">🗑 이 달 삭제</button></span>`;
+  document.getElementById("monthTabs").innerHTML = html;
+}
+
 function updateStats() {
-  const total = rows.length;
-  const done = rows.filter(r => r.pay === "완료").length;
+  const tab = curTab();
+  const base = inTab(rows, tab);
+  document.getElementById("stTotalLabel").textContent = tab === "ALL" ? "전체 건수" : `${monthTitle(tab)} 건수`;
+  const total = base.length;
+  const done = base.filter(r => r.pay === "완료").length;
   document.getElementById("stTotal").textContent = total + "건";
   document.getElementById("stDone").textContent = done + "건";
   document.getElementById("stWait").textContent = (total - done) + "건";
-  document.getElementById("stAmount").textContent = sumAmount(rows).toLocaleString("ko-KR") + "원";
+  document.getElementById("stAmount").textContent = sumAmount(base).toLocaleString("ko-KR") + "원";
 }
 
 /* =========================================================
    7) 검색 필터
    ========================================================= */
 function getFiltered() {
-  const field = document.getElementById("searchField").value;
-  const q = document.getElementById("searchText").value.trim();
+  const q = document.getElementById("searchText").value.trim().toLowerCase();
   const filterKeys = Object.keys(colFilters);
   return rows.filter(r => {
-    if (q && !(r[field] || "").includes(q)) return false;
+    if (q && !matchesSearch(r, q)) return false;
     for (const key of filterKeys) {
       if (!colFilters[key].has(valueOf(r, key))) return false;
     }
     return true;
+  });
+}
+
+/* 전체 컬럼에서 검색 (저장된 값과 화면 표시값 모두 비교) */
+function matchesSearch(r, q) {
+  return Object.keys(COL_DEFS).some(key => {
+    const v = valueOf(r, key);
+    if (v === "") return false;
+    return v.toLowerCase().includes(q) || displayVal(key, v).toLowerCase().includes(q);
   });
 }
 
@@ -1129,19 +1177,78 @@ function tableWidth() {
 /* =========================================================
    9) 화면 그리기 (월 → 기간 2단 그룹, 컬럼 순서 반영)
    ========================================================= */
+/* 3단계: 덩어리(gid)별 — 복사본은 날짜가 같아도 별도 덩어리로 표시됨 */
+function chunkRows(mList, COLSPAN) {
+  let bodyRows = "";
+  const chunks = {};
+  const order = [];
+  mList.forEach(r => {
+    if (!chunks[r.gid]) { chunks[r.gid] = []; order.push(r.gid); }
+    chunks[r.gid].push(r);
+  });
+  const origIdx = {};
+  order.forEach((g, i) => { origIdx[g] = i; });
+  order.sort((a, b) => {
+    const sa = (chunks[a][0].start || "￿"), sb = (chunks[b][0].start || "￿");
+    return sa.localeCompare(sb) || origIdx[a] - origIdx[b];
+  });
+
+  order.forEach(gid => {
+    const rList = chunks[gid];
+    const s = rList[0].start || "", e = rList[0].end || "";
+    const rFoldKey = "G:" + gid;
+    const rFold = folded.has(rFoldKey);
+    const rSum = sumAmount(rList);
+
+    bodyRows += `<tr class="range-bar ${rFold ? "collapsed" : ""}">
+      <td colspan="${COLSPAN}">
+        <span class="rtoggle" onclick="toggleFold('${rFoldKey}')">
+          <span class="arrow">▼</span>
+          <span class="rtitle">${rangeTitle(s, e)}</span>
+          <span class="count">${rList.length}건</span>
+          ${rSum ? `<span class="msum">${rSum.toLocaleString("ko-KR")}원</span>` : ""}
+        </span>
+        <span class="grp-tools" onclick="event.stopPropagation()">
+          <input type="date" class="gs" value="${s}">
+          <span class="tilde">~</span>
+          <input type="date" class="ge" value="${e}">
+          <button class="grp-add" onclick="addRowToChunk('${gid}')">＋ 행 추가</button>
+          <button class="grp-apply" onclick="applyGroupDate('${gid}', this)">이 그룹 날짜 일괄 지정</button>
+          <button class="grp-copy" onclick="copyGroup('${gid}')">📋 그룹 복사</button>
+          <button class="grp-del" onclick="deleteGroup('${gid}')">🗑 그룹 삭제</button>
+        </span>
+      </td></tr>`;
+
+    if (!rFold) {
+      let showList = rList;
+      if (sortState) {
+        const { key, dir } = sortState, sign = dir === "asc" ? 1 : -1;
+        showList = rList.slice().sort((a, b) => cmpVals(key, valueOf(a, key), valueOf(b, key)) * sign);
+      }
+      bodyRows += showList.map((r, i) => rowHtml(r, i + 1)).join("");
+    }
+  });
+  return bodyRows;
+}
+
 function render() {
   updateStats();
 
   const COLSPAN = colOrder.length + 3;   // 체크박스 + # + 삭제
-  const filtered = getFiltered();
+  const tab = curTab();
+  const all = getFiltered();
+  const filtered = inTab(all, tab);
+  renderMonthTabs(tab, all);
   let bodyRows = "";
 
   if (filtered.length === 0) {
     bodyRows = `<tr class="empty-row"><td colspan="${COLSPAN}">
       ${rows.length === 0
         ? `아직 등록된 내용이 없어요.<br><br><button class="primary" onclick="addRow()">＋ 첫 행 추가</button> 또는 상단의 <b>📂 엑셀 업로드</b>로 시작하세요.`
-        : "검색 결과가 없어요.<br>검색어를 지우면 전체가 다시 보입니다."}
+        : all.length ? "이 달에는 검색 결과가 없어요.<br>다른 월 탭이나 <b>전체</b> 탭을 확인해 보세요." : "검색 결과가 없어요.<br>검색어를 지우면 전체가 다시 보입니다."}
     </td></tr>`;
+  } else if (tab !== "ALL") {
+    bodyRows = chunkRows(filtered, COLSPAN);   // 월 탭: 그 달의 기간 그룹만
   } else {
     // 1단계: 연도별
     const years = {};
@@ -1195,55 +1302,7 @@ function render() {
           </td></tr>`;
         if (mFold) return;
 
-        // 3단계: 덩어리(gid)별 — 복사본은 날짜가 같아도 별도 덩어리로 표시됨
-        const chunks = {};
-        const order = [];
-        mList.forEach(r => {
-          if (!chunks[r.gid]) { chunks[r.gid] = []; order.push(r.gid); }
-          chunks[r.gid].push(r);
-        });
-        const origIdx = {};
-        order.forEach((g, i) => { origIdx[g] = i; });
-        order.sort((a, b) => {
-          const sa = (chunks[a][0].start || "￿"), sb = (chunks[b][0].start || "￿");
-          return sa.localeCompare(sb) || origIdx[a] - origIdx[b];
-        });
-
-        order.forEach(gid => {
-          const rList = chunks[gid];
-          const s = rList[0].start || "", e = rList[0].end || "";
-          const rFoldKey = "G:" + gid;
-          const rFold = folded.has(rFoldKey);
-          const rSum = sumAmount(rList);
-
-          bodyRows += `<tr class="range-bar ${rFold ? "collapsed" : ""}">
-            <td colspan="${COLSPAN}">
-              <span class="rtoggle" onclick="toggleFold('${rFoldKey}')">
-                <span class="arrow">▼</span>
-                <span class="rtitle">${rangeTitle(s, e)}</span>
-                <span class="count">${rList.length}건</span>
-                ${rSum ? `<span class="msum">${rSum.toLocaleString("ko-KR")}원</span>` : ""}
-              </span>
-              <span class="grp-tools" onclick="event.stopPropagation()">
-                <input type="date" class="gs" value="${s}">
-                <span class="tilde">~</span>
-                <input type="date" class="ge" value="${e}">
-                <button class="grp-add" onclick="addRowToChunk('${gid}')">＋ 행 추가</button>
-                <button class="grp-apply" onclick="applyGroupDate('${gid}', this)">이 그룹 날짜 일괄 지정</button>
-                <button class="grp-copy" onclick="copyGroup('${gid}')">📋 그룹 복사</button>
-                <button class="grp-del" onclick="deleteGroup('${gid}')">🗑 그룹 삭제</button>
-              </span>
-            </td></tr>`;
-
-          if (!rFold) {
-            let showList = rList;
-            if (sortState) {
-              const { key, dir } = sortState, sign = dir === "asc" ? 1 : -1;
-              showList = rList.slice().sort((a, b) => cmpVals(key, valueOf(a, key), valueOf(b, key)) * sign);
-            }
-            bodyRows += showList.map((r, i) => rowHtml(r, i + 1)).join("");
-          }
-        });
+        bodyRows += chunkRows(mList, COLSPAN);
       });
     });
   }
@@ -1506,7 +1565,7 @@ cloudLoad(); // ← 클라우드에서 최신 데이터 불러오기 (연결됐�
   .save-status i{font-size:13px}
   .save-status.saving{color:#BA7517}
   .save-status.saved{color:#6B8CAE}
-  .wrap{max-width:1600px;margin:0 auto;padding:1.5rem}
+  .wrap{max-width:1300px;margin:0 auto;padding:1.5rem}
   .sub{font-size:13px;color:#7C8FA6;margin-bottom:1.25rem;margin-top:4px}
   .summary{display:flex;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap}
   .stat{background:#fff;border-radius:10px;padding:12px 20px;min-width:130px;border:0.5px solid #D7E2EE}
@@ -1583,6 +1642,12 @@ cloudLoad(); // ← 클라우드에서 최신 데이터 불러오기 (연결됐�
   .search-bar .search-clear:hover{color:#E24B4A}
   .search-bar .search-clear.visible{display:inline-flex;align-items:center}
   .search-result-tag{font-size:12px;color:#6B8CAE;white-space:nowrap}
+  .mtabs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:1rem;padding-bottom:12px;border-bottom:0.5px solid #C7D6E5}
+  .mtab{font-size:13px;padding:7px 14px;border-radius:999px;border:0.5px solid #C7D6E5;background:#fff;color:#7C8FA6;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .mtab:hover{background:#E2EBF4;color:#1E2D3D}
+  .mtab.on{background:#6B8CAE;border-color:#6B8CAE;color:#fff;font-weight:600}
+  .mtab .cnt{margin-left:6px;font-size:11px;opacity:.75}
+  .mtab.zero{opacity:.45}
   .sec-btn{background:none;border:0.5px solid #B8CEDF;border-radius:5px;font-size:11px;padding:2px 8px;cursor:pointer;color:#7C8FA6;font-family:inherit;white-space:nowrap}
   .sec-btn:hover{background:#fff;color:#1E2D3D;border-color:#6B8CAE}
   .subgroup-header td{overflow:visible}
@@ -1632,21 +1697,23 @@ cloudLoad(); // ← 클라우드에서 최신 데이터 불러오기 (연결됐�
     <span class="search-result-tag" id="searchResultTag"></span>
   </div>
 
+  <div class="mtabs" id="monthTabs"></div>
+
   <div class="tbl-wrap">
     <table id="tbl">
       <colgroup>
         <col style="width:40px">
         <col style="width:110px">
         <col style="width:110px">
-        <col style="width:160px">
+        <col style="width:145px">
         <col style="width:80px">
         <col style="width:135px">
         <col style="width:80px">
         <col style="width:90px">
-        <col style="width:110px">
+        <col style="width:125px">
         <col style="width:90px">
         <col style="width:110px">
-        <col style="width:140px">
+        <col style="width:100px">
         <col style="width:36px">
       </colgroup>
       <thead>
@@ -1724,6 +1791,36 @@ const FILTER_COLS = {
 };
 
 let columnFilters = {}; // key -> Set of allowed raw values (없으면 전체 허용)
+let monthTab = JSON.parse(localStorage.getItem('settle_month_tab') || '""'); // 보고 있는 월 탭 ("ALL" = 전체, "" = 가장 최근 월)
+
+// ── 월 탭 (정산종료일 기준) ──
+function monthKeyOf(r){ return r.endDate ? r.endDate.slice(0,7) : 'none'; }
+function monthKeys(){
+  return [...new Set(rows.map(monthKeyOf))].sort((a,b)=>{
+    if(a==='none') return 1;
+    if(b==='none') return -1;
+    return b.localeCompare(a);
+  });
+}
+function curTab(){
+  if(monthTab==='ALL') return 'ALL';
+  const keys = monthKeys();
+  return keys.includes(monthTab) ? monthTab : (keys[0] || 'ALL');
+}
+function setMonthTab(k){ monthTab = k; localStorage.setItem('settle_month_tab', JSON.stringify(k)); }
+function pickMonthTab(k){ setMonthTab(k); render(); }
+function inTab(r, tab){ return tab==='ALL' || monthKeyOf(r)===tab; }
+function renderMonthTabs(tab){
+  const counts = {}; let total = 0;
+  rows.forEach(r=>{ if(!matchesFilters(r)) return; const k = monthKeyOf(r); counts[k] = (counts[k]||0)+1; total++; });
+  let html = `<button class="mtab${tab==='ALL'?' on':''}" onclick="pickMonthTab('ALL')">전체<span class="cnt">${total}건</span></button>`;
+  monthKeys().forEach(k=>{
+    const n = counts[k] || 0;
+    const label = k==='none' ? '날짜없음' : groupKey(k+'-01');
+    html += `<button class="mtab${tab===k?' on':''}${n?'':' zero'}" onclick="pickMonthTab('${k}')">${label}<span class="cnt">${n}건</span></button>`;
+  });
+  document.getElementById('monthTabs').innerHTML = html;
+}
 let searchQuery = '';
 let searchField = 'rep';
 
@@ -1979,10 +2076,13 @@ function render(){
   const tb = document.getElementById('tbody');
   tb.innerHTML = '';
 
-  // 정산종료일 기준 연/월 그룹으로 묶기 (필터 적용)
+  const tab = curTab();
+  renderMonthTabs(tab);
+
+  // 정산종료일 기준 연/월 그룹으로 묶기 (필터 + 월 탭 적용)
   const groups = {};
   rows.forEach((r,i)=>{
-    if(!matchesFilters(r)) return;
+    if(!matchesFilters(r) || !inTab(r, tab)) return;
     const key = groupKey(r.endDate);
     (groups[key] = groups[key] || []).push(i);
   });
@@ -1993,7 +2093,7 @@ function render(){
   });
 
   if(sortedKeys.length===0){
-    tb.innerHTML = '<tr><td colspan="12" style="text-align:center;color:#888780;padding:20px">검색 결과가 없어요.</td></tr>';
+    tb.innerHTML = `<tr><td colspan="12" style="text-align:center;color:#888780;padding:20px">${tab==='ALL' ? '검색 결과가 없어요.' : '이 달에는 보여줄 내용이 없어요. 다른 월 탭이나 <b>전체</b> 탭을 확인해 보세요.'}</td></tr>`;
     updateSummary();
     updateFilterBtnStates();
     return;
@@ -2001,12 +2101,14 @@ function render(){
 
   sortedKeys.forEach(key=>{
     const indices = groups[key];
-    const collapsed = collapsedGroups.includes(key);
+    const collapsed = tab==='ALL' && collapsedGroups.includes(key);
 
-    const headerTr = document.createElement('tr');
-    headerTr.className = 'group-header'+(collapsed?' collapsed':'');
-    headerTr.innerHTML = `<td colspan="12" onclick="toggleGroup('${key}')"><i class="ti ti-chevron-down"></i>${key}<span class="group-count">${indices.length}건</span></td>`;
-    tb.appendChild(headerTr);
+    if(tab==='ALL'){   // 월 탭에서는 월 머리줄 없이 바로 기간 그룹
+      const headerTr = document.createElement('tr');
+      headerTr.className = 'group-header'+(collapsed?' collapsed':'');
+      headerTr.innerHTML = `<td colspan="12" onclick="toggleGroup('${key}')"><i class="ti ti-chevron-down"></i>${key}<span class="group-count">${indices.length}건</span></td>`;
+      tb.appendChild(headerTr);
+    }
 
     if(!collapsed){
       // 정산시작일~정산종료일 구간(주차)별로 다시 묶기
@@ -2125,12 +2227,15 @@ function formatAmount(v){
 }
 
 function updateSummary(){
-  const total = rows.length;
-  const done = rows.filter(r=>r.settle==='완료').length;
+  const tab = curTab();
+  const base = rows.filter(r=>inTab(r, tab));
+  const total = base.length;
+  const done = base.filter(r=>r.settle==='완료').length;
   const pending = total - done;
-  const totalAmt = rows.reduce((s,r)=>s+(parseFloat(String(r.amount).replace(/[^0-9.\-]/g,''))||0),0);
+  const totalAmt = base.reduce((s,r)=>s+(parseFloat(String(r.amount).replace(/[^0-9.\-]/g,''))||0),0);
+  const tabName = tab==='ALL' ? '전체' : tab==='none' ? '날짜없음' : groupKey(tab+'-01');
   document.getElementById('summary').innerHTML = `
-    <div class="stat"><div class="stat-label">전체 건수</div><div class="stat-val amber">${total}건</div></div>
+    <div class="stat"><div class="stat-label">${tabName} 건수</div><div class="stat-val amber">${total}건</div></div>
     <div class="stat"><div class="stat-label">정산 완료</div><div class="stat-val green">${done}건</div></div>
     <div class="stat"><div class="stat-label">정산 미완료</div><div class="stat-val amber">${pending}건</div></div>
     <div class="stat"><div class="stat-label">총 이체금액</div><div class="stat-val amber">${totalAmt.toLocaleString()}원</div></div>
@@ -2140,6 +2245,7 @@ function updateSummary(){
 function addRow(){
   const newIdx = rows.length;
   rows.push({startDate:today,endDate:today,company:'',rep:'',acct:'',bank:'',settleType:'',amount:'',settle:'미완료',tax:'미완료',memo:''});
+  if(monthTab!=='ALL') setMonthTab(today.slice(0,7));
   autoSave();
   render();
   setTimeout(()=>{
@@ -2420,7 +2526,7 @@ function exportCSV(){
 function initColResize(){
   const cols = document.querySelectorAll('#tbl colgroup col');
   const ths = document.querySelectorAll('#headRow th');
-  const LAYOUT_VER = '3';
+  const LAYOUT_VER = '4';
   if(localStorage.getItem('settle_layout_ver') !== LAYOUT_VER){
     localStorage.removeItem('settle_colwidths');
     localStorage.setItem('settle_layout_ver', LAYOUT_VER);
@@ -2457,6 +2563,1734 @@ function initColResize(){
 }
 
 window.addEventListener('beforeunload', forceSave);
+</script>
+</body>
+</html>
+</template>
+
+<!-- ============================================================
+     ▼ 탭: 📑 알디솔루션 정산   (원본: 새로 만듦 — 저장 위치: Supabase fee_state 표의 rd_main 줄)
+       - 월 탭 안에 '주차 그룹'(1주차, 2주차…)이 있고, 주차마다 세 항목이 한 묶음:
+           ① 알디솔루션 정산현황 : 정산 현황 관리(settlement_data)에서 대표자가 '알디솔루션'인 행 중
+                                  정산종료일이 그 주차 기간에 들어가는 행 (읽기 전용, 실시간으로 따라옴)
+           ② 배민 일선정산      : 캡쳐 이미지를 올리면 표 머리글 위치를 보고 13개 칸으로 나눠 넣음(OCR)
+           ③ 쿠팡 일선정산      : '결제일 기준' 메모 + 협력사·결제금액
+       - 정산 현황 관리에 새 기간이 생기면 그 기간의 주차 그룹이 자동으로 만들어짐
+       - '확인용 파일 만들기' : 고른 주차만 담은 html 파일을 내려받음. 더블클릭하면 같은 화면이 '읽기 전용'으로 열림 (로그인 불필요)
+     ============================================================ -->
+<template id="page-rd">
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>알디솔루션 정산</title>
+<style>
+  :root{
+    --bg:#F5F3F8; --ink:#2F2B3A; --muted:#857E99; --faint:#B5AFC6; --line:#ECE8F3; --line2:#DCD5EA;
+    --main:#8C7BC4; --main-d:#6E5CA8; --main-l:#EEEAF8; --main-ll:#F8F6FC;     /* 라벤더 (기본) */
+    --bm:#4E9E76; --bm-d:#367A57; --bm-l:#E3F3EA; --bm-ll:#F4FAF6; --bm-line:#CBE6D7; /* 배민 = 초록 */
+    --cp:#D4646B; --cp-d:#B04A51; --cp-l:#FBE7E8; --cp-ll:#FEF6F6; --cp-line:#F1CDD0; /* 쿠팡 = 빨강 */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+  .topbar{background:#fff;border-bottom:1px solid var(--line);padding:0 2rem;height:56px;display:flex;align-items:center;gap:10px}
+  .topbar h1{font-size:16px;font-weight:600}
+  .topbar>i{font-size:18px;color:var(--main)}
+  .ro-badge{font-size:11px;color:var(--main-d);background:var(--main-l);border:1px solid var(--line2);border-radius:20px;padding:3px 10px;white-space:nowrap}
+  .save-status{margin-left:auto;font-size:11px;color:var(--faint);display:flex;align-items:center;gap:4px;white-space:nowrap}
+  .save-status.saving{color:#B7862F}
+  .save-status.err{color:var(--cp)}
+  .wrap{max-width:1300px;margin:0 auto;padding:1.5rem}
+  .sub{font-size:13px;color:var(--muted);margin-bottom:1rem;margin-top:4px;line-height:1.6}
+
+  /* ── 월 탭 ── */
+  .months{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:1.1rem;padding-bottom:12px;border-bottom:1px solid var(--line2)}
+  .mtab{appearance:none;border:1px solid var(--line2);background:#fff;color:var(--muted);font:inherit;font-size:13px;padding:7px 14px;border-radius:999px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+  .mtab:hover{background:var(--main-ll);color:var(--ink)}
+  .mtab.on{background:var(--main);border-color:var(--main);color:#fff;font-weight:600}
+  .mtab .cnt{font-size:11px;opacity:.75;font-weight:400}
+  .madd{position:relative;display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);border:1px dashed var(--line2);border-radius:999px;padding:6px 12px;cursor:pointer;background:transparent;font-family:inherit}
+  .madd:hover{color:var(--ink);border-color:var(--main)}
+  .madd input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+
+  .summary{display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap}
+  .stat{background:#fff;border-radius:12px;padding:12px 20px;min-width:160px;border:1px solid var(--line)}
+  .stat.bm{background:var(--bm-ll);border-color:var(--bm-line)}
+  .stat.cp{background:var(--cp-ll);border-color:var(--cp-line)}
+  .stat-label{font-size:11px;color:var(--muted);margin-bottom:2px}
+  .stat-val{font-size:20px;font-weight:600}
+  .stat.total .stat-val{color:var(--main-d)}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem;align-items:center}
+  .toolbar button{font-size:13px;padding:7px 16px;border-radius:8px;border:1px solid var(--line2);background:#fff;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:5px;font-family:inherit}
+  .toolbar button:hover{background:var(--main-ll)}
+  .toolbar button.primary{background:var(--main);color:#fff;border-color:var(--main)}
+  .toolbar button.primary:hover{background:var(--main-d)}
+
+  /* ── 주차 그룹 ── */
+  .week{background:#fff;border:1px solid var(--line2);border-radius:14px;margin-bottom:16px;overflow:hidden;box-shadow:0 1px 3px rgba(80,60,130,.05)}
+  .week-head{display:flex;align-items:center;gap:10px;padding:11px 16px;background:var(--main-l);cursor:pointer;user-select:none;flex-wrap:wrap}
+  .week-head:hover{background:#E7E1F5}
+  .week .chev{transition:transform .15s;color:var(--main)}
+  .week.closed>.week-head .chev{transform:rotate(-90deg)}
+  .week.closed>.week-body{display:none}
+  .week-title{font-weight:700;font-size:15px;color:var(--ink);border:1px solid transparent;background:transparent;border-radius:6px;padding:3px 6px;width:120px;font-family:inherit}
+  input.week-title:hover{border-color:var(--line2)}
+  input.week-title:focus{outline:none;border-color:var(--main);background:#fff}
+  .week-period{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--muted);cursor:default}
+  .week-period input{border:1px solid var(--line2);border-radius:6px;padding:3px 6px;font:inherit;font-size:12px;color:var(--ink);background:#fff}
+  .week-sum{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+  .chip{font-size:12px;padding:3px 10px;border-radius:999px;background:#fff;border:1px solid var(--line2);white-space:nowrap}
+  .chip.bm{background:var(--bm-l);border-color:var(--bm-line);color:var(--bm-d)}
+  .chip.cp{background:var(--cp-l);border-color:var(--cp-line);color:var(--cp-d)}
+  .chip.rd{color:var(--main-d)}
+  .week-body{padding:12px;display:flex;flex-direction:column;gap:12px}
+
+  /* ── 항목(섹션) : 색은 --c 계열로 ── */
+  .sec{--c:var(--main);--cd:var(--main-d);--cl:var(--main-l);--cll:var(--main-ll);--cline:var(--line2);border:1px solid var(--cline);border-radius:10px;overflow:hidden;background:#fff}
+  .sec.bm{--c:var(--bm);--cd:var(--bm-d);--cl:var(--bm-l);--cll:var(--bm-ll);--cline:var(--bm-line)}
+  .sec.cp{--c:var(--cp);--cd:var(--cp-d);--cl:var(--cp-l);--cll:var(--cp-ll);--cline:var(--cp-line)}
+  .sec-head{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--cl);cursor:pointer;user-select:none;flex-wrap:wrap}
+  .sec-head:hover{filter:brightness(.98)}
+  .sec-head .chev{color:var(--c)}
+  .sec.closed .sec-head .chev{transform:rotate(-90deg)}
+  .sec.closed .sec-body{display:none}
+  .sec-title{font-size:14px;font-weight:600;color:var(--cd)}
+  .sec-count{font-size:12px;color:var(--muted)}
+  .sec-sum{margin-left:auto;font-size:13px;font-weight:600;color:var(--cd)}
+  .live{font-size:11px;color:var(--cd);background:#fff;border:1px solid var(--cline);border-radius:999px;padding:2px 8px;display:inline-flex;align-items:center;gap:3px}
+  .sec-actions{display:flex;gap:6px;flex-wrap:wrap}
+  .sec-basis{flex-basis:100%;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding-left:44px;cursor:default}
+  .sec-basis input{flex:0 1 320px;padding:5px 9px;border:1px solid var(--cline);border-radius:6px;font:inherit;font-size:13px;color:var(--ink);background:#fff;outline:none}
+  .sec-basis input:focus{border-color:var(--c)}
+  .sec-basis b{color:var(--ink);font-weight:500;font-size:13px}
+  .sec-body{overflow-x:auto}
+  .handle{color:var(--faint);cursor:grab;display:inline-flex;padding:2px;border-radius:4px}
+  .handle:hover{color:var(--ink);background:rgba(255,255,255,.7)}
+  .drop-before{box-shadow:0 -3px 0 0 var(--main)}
+  .drop-after{box-shadow:0 3px 0 0 var(--main)}
+  .sec-btn{background:#fff;border:1px solid var(--cline,var(--line2));border-radius:6px;font-size:12px;padding:4px 10px;cursor:pointer;color:var(--ink);font-family:inherit;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
+  .sec-btn:hover{border-color:var(--c,var(--main))}
+  .sec-btn.danger{color:var(--cp-d)}
+  .sec-btn.danger:hover{border-color:var(--cp);background:var(--cp-ll)}
+  .hint{font-size:12px;color:var(--muted);padding:8px 14px;border-bottom:1px solid var(--line)}
+  .copy{border:1px dashed var(--line2);border-radius:12px;background:var(--main-ll)}
+  .copy-head{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;user-select:none;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+  .copy-head b{color:var(--ink);font-size:14px}
+  .copy .chev{transition:transform .15s;color:var(--main)}
+  .copy.closed .chev{transform:rotate(-90deg)}
+  .copy.closed .copy-body{display:none}
+  .copy-body{padding:0 10px 10px;display:flex;flex-direction:column;gap:10px}
+  .week-add{width:100%;padding:12px;border:1px dashed var(--line2);border-radius:12px;background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
+  .week-add:hover{border-color:var(--main);color:var(--ink);background:#fff}
+
+  /* ── 표 (칸 너비는 머리글 오른쪽 끝을 끌어서 조절) ── */
+  table.grid{border-collapse:collapse;font-size:13px;table-layout:fixed}
+  table.grid thead tr{background:var(--cll)}
+  table.grid th{position:relative;padding:9px 10px;text-align:left;font-weight:500;color:var(--muted);border-bottom:1px solid var(--line);white-space:nowrap;font-size:12px;overflow:hidden;text-overflow:ellipsis}
+  table.grid td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  table.grid tbody tr:hover td{background:var(--cll)}
+  .col-resizer{position:absolute;top:0;right:0;width:7px;height:100%;cursor:col-resize;user-select:none;touch-action:none}
+  .col-resizer:hover,.col-resizer.active{background:var(--c)}
+  .num{text-align:right}
+  .row-num{color:var(--faint);font-size:11px;text-align:center}
+  .subtotal td{background:var(--cl);font-weight:600}
+  .subtotal .sub-label{text-align:right;color:var(--muted);font-weight:500}
+  .badge{display:inline-block;font-size:12px;padding:3px 11px;border-radius:20px;border:1px solid;font-weight:500;white-space:nowrap}
+  .badge.done{background:#E6F4EA;color:#2F7A45;border-color:#9ACDA9}
+  .badge.pending,.badge.none{background:#F1EFF5;color:#9C96AD;border-color:#DCD8E5}
+  .badge.type-il{background:#E8EEFB;color:#3F5FB0;border-color:#A9BDEB}
+  .badge.type-ju{background:#F1E8F8;color:#7A3FA0;border-color:#C9A5E0}
+  .badge.type-so{background:#FBE7E8;color:#B04A51;border-color:#EBA9AD}
+  .editable{background:transparent;border:none;outline:none;font-size:13px;color:var(--ink);width:100%;font-family:inherit;padding:3px 5px;border-radius:5px}
+  .editable:focus{background:var(--cll);outline:2px solid var(--c);outline-offset:-1px}
+  .editable.num{text-align:right}
+  table.grid td.fill{padding:0}
+  table.grid td.del-cell{padding:4px 2px;text-overflow:clip;text-align:center}
+  .editable::placeholder{color:#D3CEDD}
+  .del-btn{background:none;border:none;cursor:pointer;color:var(--faint);font-size:15px;padding:3px 7px;border-radius:5px}
+  .del-btn:hover{color:var(--cp);background:var(--cp-ll)}
+  .empty{padding:20px;text-align:center;color:var(--muted);font-size:13px}
+  .msg-box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:40px 20px;text-align:center;color:var(--muted);font-size:14px}
+
+  /* ── 팝업 ── */
+  .modal-bg{position:fixed;inset:0;background:rgba(47,43,58,.42);display:flex;align-items:center;justify-content:center;padding:16px;z-index:100}
+  .modal-bg[hidden]{display:none}
+  .modal{background:#fff;border-radius:14px;width:100%;max-width:1500px;max-height:calc(100vh - 32px);display:flex;flex-direction:column;overflow:hidden}
+  .modal.small{max-width:580px}
+  .modal-head{padding:14px 18px;border-bottom:1px solid var(--line);font-weight:600;font-size:15px;display:flex;align-items:center;gap:8px}
+  .modal-head .x{margin-left:auto;background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted)}
+  .modal-body{padding:14px 18px;overflow:auto;flex:1;font-size:13px}
+  .modal-foot{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+  .modal-foot button{font-size:13px;padding:7px 16px;border-radius:8px;border:1px solid var(--line2);background:#fff;cursor:pointer;font-family:inherit}
+  .modal-foot button.primary{background:var(--main);color:#fff;border-color:var(--main)}
+  .modal-foot button:disabled{opacity:.45;cursor:default}
+  .form-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .form-row>span{width:80px;color:var(--muted);flex:none}
+  .form-row input[type=month],.form-row select{flex:1;padding:7px 9px;border:1px solid var(--line2);border-radius:8px;font:inherit;font-size:13px;background:#fff}
+  .check{display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer}
+  .pick-month{display:flex;align-items:center;gap:10px;margin:14px 0 6px;font-weight:600}
+  .pick-month:first-child{margin-top:0}
+  .pick-month a{font-size:12px;font-weight:400;color:var(--main-d);cursor:pointer}
+  .pick-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;cursor:pointer}
+  .pick-item:hover{background:var(--main-ll)}
+  .pick-item .muted{color:var(--muted);font-size:12px;margin-left:auto}
+  .ocr-thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .ocr-thumbs img{max-height:120px;max-width:100%;border:1px solid var(--line);border-radius:8px}
+  .ocr-table{border-collapse:collapse;font-size:12px}
+  .ocr-table th{font-weight:500;color:var(--muted);padding:4px;text-align:left;white-space:nowrap}
+  .ocr-table td{padding:2px 3px}
+  .ocr-table td input[type=text]{width:100%;border:1px solid var(--line);border-radius:5px;padding:5px 6px;font:inherit;font-size:12px;color:var(--ink)}
+  .ocr-table td input.n{text-align:right}
+  .ocr-table tr.off td input[type=text]{color:var(--faint);background:#F8F7FA}
+  .ocr-progress{padding:30px 0;text-align:center;color:var(--main-d)}
+  .ocr-progress .bar{height:6px;background:var(--main-l);border-radius:3px;margin:12px auto 0;max-width:360px;overflow:hidden}
+  .ocr-progress .bar i{display:block;height:100%;background:var(--main);width:0;transition:width .2s}
+  details.raw{margin-top:12px;color:var(--muted)}
+  details.raw pre{white-space:pre-wrap;font-size:12px;background:var(--main-ll);border-radius:6px;padding:10px;margin-top:6px;max-height:200px;overflow:auto}
+  .note{font-size:12px;color:var(--muted);line-height:1.6;margin-top:10px}
+
+  #flash{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);background:var(--ink);color:#fff;font-size:13px;padding:10px 18px;border-radius:999px;opacity:0;pointer-events:none;transition:.2s;z-index:200}
+  #flash.show{opacity:1;transform:translate(-50%,0)}
+  /* 배민: 수수료 차감 표시 / 대표자 필터 / 수수료 미차감 표 */
+  td .adj{display:flex;flex-direction:column;align-items:flex-end;line-height:1.25}
+  td .adj[hidden],td .raw[hidden]{display:none}
+  td .adj b{color:var(--cp-d)}
+  td .adj small{font-size:10.5px;color:var(--muted);font-weight:400}
+  .th-filter{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-left:4px;border-radius:4px;color:var(--faint);cursor:pointer;vertical-align:middle}
+  .th-filter:hover{background:#fff;color:var(--ink)}
+  .th-filter.on{color:var(--bm-d);background:#fff}
+  .hmenu{position:fixed;z-index:150;width:240px;background:#fff;border:1px solid var(--line2);border-radius:10px;box-shadow:0 8px 24px rgba(47,43,58,.15);padding:8px;font-size:12px}
+  .hmenu[hidden]{display:none}
+  .hm-sort{display:flex;flex-direction:column;gap:2px;padding-bottom:6px;margin-bottom:6px;border-bottom:1px solid var(--line)}
+  .hm-sort button{text-align:left;background:none;border:none;padding:6px;border-radius:6px;cursor:pointer;font:inherit;font-size:12px;display:flex;gap:6px;align-items:center}
+  .hm-sort button:hover{background:var(--main-ll)}
+  .hm-search{width:100%;padding:6px 8px;border:1px solid var(--line2);border-radius:6px;font:inherit;font-size:12px;margin-bottom:6px}
+  .hm-actions{display:flex;justify-content:space-between;margin-bottom:4px}
+  .hm-actions a{color:var(--main-d);cursor:pointer}
+  .hm-list{max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:2px}
+  .hm-item{display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:4px;cursor:pointer}
+  .hm-item:hover{background:var(--main-ll)}
+  .hm-item span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hm-item em{font-style:normal;color:var(--faint)}
+  .hm-btns{display:flex;gap:6px;margin-top:8px}
+  .hm-btns button{flex:1;padding:6px;border-radius:6px;border:1px solid var(--line2);background:#fff;cursor:pointer;font:inherit;font-size:12px}
+  .hm-btns button.primary{background:var(--main);border-color:var(--main);color:#fff}
+  .fee-box{margin:12px;border:1px dashed var(--bm-line);border-radius:10px;overflow:hidden}
+  .fee-head{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bm-ll);flex-wrap:wrap;font-size:13px;color:var(--bm-d)}
+  .fee-head .sec-actions{margin-left:auto}
+  .fee-rate-wrap{font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:3px}
+  input.fee-rate{width:46px;padding:3px 5px;border:1px solid var(--bm-line);border-radius:5px;font:inherit;font-size:12px;text-align:right}
+  td.neg{color:var(--cp-d);font-weight:600}
+  .fee-ok{color:var(--bm-d);font-size:12px}
+  .fee-no{color:var(--cp-d);font-size:12px}
+  body.ro .owner-only{display:none!important}
+  @media(max-width:768px){
+    .wrap{padding:1rem .75rem}
+    .topbar{padding:0 1rem}
+    .week-sum{margin-left:0}
+  }
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <i class="ti ti-building-community"></i>
+  <h1>알디솔루션 정산</h1>
+  <span class="ro-badge" id="roBadge" hidden></span>
+  <div class="save-status owner-only" id="saveStatus"><i class="ti ti-cloud-check"></i><span>불러오는 중...</span></div>
+</div>
+
+<div class="wrap" id="wrap">
+  <p class="sub owner-only">주차마다 <b>알디솔루션 정산현황 · 배민 일선정산 · 쿠팡 일선정산</b>이 한 묶음이에요. 알디솔루션 정산현황은 정산 현황 관리에서 대표자가 '알디솔루션'인 데이터를 실시간으로 따라오고, 정산 현황 관리에 새 기간이 생기면 그 주차가 자동으로 만들어져요.<br>⠿ 손잡이를 끌면 주차·항목 순서를 바꿀 수 있고, 표 머리글 오른쪽 끝을 끌면 칸 너비를 조절할 수 있어요.</p>
+
+  <div class="months" id="months"></div>
+  <div class="summary" id="summary"></div>
+
+  <div class="toolbar">
+    <button onclick="openPick('excel')"><i class="ti ti-file-spreadsheet"></i> 엑셀 다운로드</button>
+    <button class="primary owner-only" onclick="openPick('file')" title="고른 주차만 담은 html 파일을 내려받아요. 받은 사람은 더블클릭해서 바로 볼 수 있어요."><i class="ti ti-file-code"></i> 확인용 파일 만들기</button>
+  </div>
+
+  <div id="weeks"></div>
+</div>
+
+<input type="file" id="capInput" accept="image/*" multiple hidden onchange="ocrFiles([...this.files], ocrTargetWeek);this.value=''">
+
+<!-- 대표자(계좌주) 정렬·필터 메뉴 -->
+<div class="hmenu" id="holderMenu" hidden></div>
+
+<!-- 캡쳐 인식 결과 확인 -->
+<div class="modal-bg" id="ocrModal" hidden>
+  <div class="modal">
+    <div class="modal-head"><i class="ti ti-scan"></i><span id="ocrTitle">캡쳐 인식</span><button class="x" onclick="closeOcr()">✕</button></div>
+    <div class="modal-body" id="ocrBody"></div>
+    <div class="modal-foot" id="ocrFoot"></div>
+  </div>
+</div>
+
+<!-- 엑셀 / 공유할 주차 고르기 -->
+<div class="modal-bg" id="pickModal" hidden>
+  <div class="modal small">
+    <div class="modal-head"><i class="ti ti-checklist"></i><span id="pickTitle">주차 선택</span><button class="x" onclick="closeModal('pickModal')">✕</button></div>
+    <div class="modal-body" id="pickBody"></div>
+    <div class="modal-foot">
+      <span id="pickCount" style="font-size:12px;color:var(--muted);margin-right:auto"></span>
+      <button onclick="closeModal('pickModal')">취소</button>
+      <button class="primary" id="pickOk" onclick="runPick()"></button>
+    </div>
+  </div>
+</div>
+
+<!-- 주차 복사 -->
+<div class="modal-bg" id="copyModal" hidden>
+  <div class="modal small">
+    <div class="modal-head"><i class="ti ti-copy"></i><span id="copyTitle">주차 복사</span><button class="x" onclick="closeModal('copyModal')">✕</button></div>
+    <div class="modal-body">
+      <label class="form-row"><span>복사할 월</span><input type="month" id="copyMonth" onchange="fillCopyTargets()"></label>
+      <label class="form-row"><span>넣을 곳</span><select id="copyTarget"></select></label>
+      <label class="check"><input type="checkbox" checked disabled> <span id="copyRdLabel">알디솔루션 정산현황</span></label>
+      <p class="note">· <b>알디솔루션 정산현황만</b> 날짜 그대로 복사해요. 같은 기간의 데이터가 그대로 보이고, 정산 현황 관리에서 바뀌면 함께 바뀌어요. 배민·쿠팡은 복사하지 않아요.<br>· <b>새 주차로 추가</b>: 고른 월에 큰 박스를 새로 만들어요.<br>· <b>○주차 안에 넣기</b>: 그 큰 박스 안에 날짜 순서대로 넣어요. (기간이 더 이르면 맨 위)</p>
+    </div>
+    <div class="modal-foot">
+      <button onclick="closeModal('copyModal')">취소</button>
+      <button class="primary" onclick="doCopy()"><i class="ti ti-copy"></i> 복사</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   ★ 설정
+   ========================================================= */
+const SB_URL = "https://micquonnaxyhwxwksctf.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pY3F1b25uYXh5aHd4d2tzY3RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMTY0MDgsImV4cCI6MjA5NjY5MjQwOH0.9S0DhscVBWUw1nerK5weF5GMoJaTTZHLtL91yOaqHR0";
+const SB_TABLE = "fee_state";
+const SB_ID = "rd_main";
+const LS_DATA = "rd_data";
+const LS_UI = "rd_ui";
+const RD_NAME = "알디솔루션";                                       // 대표자에 이 글자가 들어 있으면 가져옴
+const TESSERACT_JS = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+const SECTIONS = ["rd", "bm", "cp"];
+
+/* 배민 일선정산 칸 (re = 캡쳐 머리글을 알아보는 글자) */
+const BM_FIELDS = [
+  { k: "opState", label: "운영여부",       w: 75,  re: /운영/ },
+  { k: "channel", label: "주문채널",       w: 80,  re: /채널|주문/ },
+  { k: "company", label: "협력사명",       w: 170, re: /력사명|업체명|상호/ },
+  { k: "bank",    label: "은행명",         w: 105, re: /은행/ },
+  { k: "acct",    label: "계좌번호",       w: 140, re: /계좌번|좌번호/ },
+  { k: "holder",  label: "계좌주(대표자)", w: 165, re: /계좌주|예금주|좌주/ },
+  { k: "rides",   label: "운행건수",       w: 80,  amount: true, re: /운행|건수/ },
+  { k: "rider",   label: "라이더금액",     w: 110, amount: true, re: /라이더/ },
+  { k: "partner", label: "협력사금액",     w: 110, amount: true, re: /력사금/ },
+  { k: "planned", label: "정산예정합계",   w: 115, amount: true, re: /정산예정|예정합/ },
+  { k: "deduct",  label: "공제합계",       w: 100, amount: true, re: /공제/ },
+  { k: "final",   label: "최종송금금액",   w: 115, amount: true, re: /최종|송금/ },
+  { k: "prepaid", label: "선정산상환액",   w: 115, amount: true, re: /상환/ },
+  { k: "unpaid",  label: "선정산미상환액", w: 125, amount: true, re: /미상/ },
+  { k: "settle",  label: "정산금액",       w: 110, amount: true, re: /정산금|산금액/ },
+  { k: "diff",    label: "정산차액",       w: 100, amount: true, re: /차액/ },
+];
+const BM_AMOUNT = BM_FIELDS.filter(f => f.amount).map(f => f.k);
+const BM_TEXT = BM_FIELDS.filter(f => !f.amount).map(f => f.k);
+const BM_MATCH_ORDER = ["unpaid", "prepaid", "rides", "opState", "channel", "holder", "acct", "partner", "company", "bank", "rider", "planned", "deduct", "final", "diff", "settle"];
+const BM_SKIP_RE = /^(저장|상환여부|상환)$/;   // 캡쳐에 있는 버튼 칸 — 이 칸의 글자는 버림
+const RD_KEYS = ["startDate", "endDate", "company", "rep", "acct", "bank", "settleType", "amount", "settle", "tax", "memo"];
+
+/* 표 칸 [이름, 기본 너비, 정렬] */
+const COLS = {
+  rd: [["#", 36], ["정산시작일", 96], ["정산종료일", 96], ["소속 협력사", 165], ["대표자", 110], ["계좌번호", 130], ["은행", 76],
+       ["정산구분", 100], ["이체금액 (원)", 112, "num"], ["정산현황", 96], ["세금계산서 발행", 106], ["메모", 90]],
+  bm: [["#", 40], ...BM_FIELDS.map(f => [f.label, f.w, f.amount ? "num" : ""]), ["", 40]],
+  cp: [["#", 40], ["협력사", 200], ["결제금액 (원)", 140, "num"], ["", 40]],
+  fee: [["#", 40], ["협력사", 180], ["총배달료", 125, "num"], ["수수료", 110, "num"], ["본 정산액", 125, "num"], ["최종 정산액", 125, "num"], ["배민 정산차액 반영", 190], ["", 40]],
+};
+
+const SHARE = window.SHARE_JSON || null;   // 확인용 파일로 열렸으면 파일 안의 데이터
+const READONLY = !!SHARE;
+if (READONLY) document.body.classList.add("ro");
+
+let sb = null;
+if (!READONLY) { try { if (window.supabase) sb = window.supabase.createClient(SB_URL, SB_KEY); } catch (e) { console.warn(e); } }
+
+/* ── 데이터 ──
+   D.weeks : [{ id, month:"2026-10", title:"1주차", start, end, order, sections:["rd","bm","cp"],
+               baemin:[{id, company, bank, acct, holder, rider, ...}], coupang:{ basis, rows:[{id, company, amount}] },
+               copies:[ 다른 주차에서 '덧붙이기'로 복사해 온 묶음 — 주차와 같은 모양 (title, start, end, sections, baemin, coupang) ] }]
+   D.months: 직접 추가한 월 목록 */
+let D = normalize(READONLY ? null : loadJSON(LS_DATA, null));
+let settleRows = READONLY ? [] : (loadJSON("settle_rows", []) || []);
+let UI = Object.assign({ month: "", closed: [], colw: {} }, READONLY ? {} : loadJSON(LS_UI, {}));
+let rowMap = new Map();       // 주차 id → 그 주차의 알디솔루션 행
+let cloudReady = false;       // 클라우드에서 불러오기 전에는 클라우드에 덮어쓰지 않음
+let activeWeek = null;        // Ctrl+V 캡쳐를 넣을 주차 (마지막으로 누른 주차)
+
+function loadJSON(k, fb) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? fb : v; } catch (e) { return fb; } }
+function saveUi() { if (READONLY) return; try { localStorage.setItem(LS_UI, JSON.stringify(UI)); } catch (e) {} }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function esc(s) { return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function pad(n) { return String(n).padStart(2, "0"); }
+function num(v) { return parseFloat(String(v ?? "").replace(/[^0-9.\-]/g, "")) || 0; }
+function fmt(v) {
+  if (v === "" || v == null) return "";
+  const n = parseFloat(String(v).replace(/[^0-9.\-]/g, ""));
+  return isNaN(n) ? "" : n.toLocaleString("ko-KR", { maximumFractionDigits: 0 });
+}
+function won(n) { return Math.round(n).toLocaleString("ko-KR") + "원"; }
+function sum(list, key) { return list.reduce((s, r) => s + num(r[key]), 0); }
+
+function fixWeek(w) {
+  w = Object.assign({}, w);
+  w.id = w.id || uid();
+  w.month = w.month || "";
+  w.title = w.title ?? "";
+  w.start = w.start || ""; w.end = w.end || "";
+  w.order = +w.order || 0;
+  const secs = Array.isArray(w.sections) ? w.sections.filter(s => SECTIONS.includes(s)) : [];
+  w.sections = [...new Set([...secs, ...SECTIONS])];
+  w.baemin = (Array.isArray(w.baemin) ? w.baemin : []).map(b => Object.assign({ id: uid() }, b));
+  const c = w.coupang && typeof w.coupang === "object" ? w.coupang : {};
+  w.coupang = { basis: c.basis || "", rows: (Array.isArray(c.rows) ? c.rows : []).map(r => Object.assign({ id: uid() }, r)) };
+  const bf = w.bmFee && typeof w.bmFee === "object" ? w.bmFee : {};
+  w.bmFee = { rate: bf.rate === undefined || bf.rate === "" ? "1.1" : String(bf.rate), rows: (Array.isArray(bf.rows) ? bf.rows : []).map(r => Object.assign({ id: uid() }, r)) };
+  w.copies = (Array.isArray(w.copies) ? w.copies : []).map(x => {
+    const c = Object.assign(fixWeek(Object.assign({}, x, { copies: [] })), { parent: w.id, month: w.month, linked: true });
+    c.sections = c.sections.filter(sec => sec === "rd" || (sec === "bm" && c.baemin.length) || (sec === "cp" && (c.coupang.rows.length || c.coupang.basis)));
+    return c;
+  });
+  return w;
+}
+function normalize(d) {
+  d = d && typeof d === "object" ? d : {};
+  const out = { weeks: (Array.isArray(d.weeks) ? d.weeks : []).map(fixWeek), months: Array.isArray(d.months) ? d.months : [],
+                dismissed: Array.isArray(d.dismissed) ? d.dismissed : [] };   // 삭제한 주차 기간 (자동으로 다시 만들지 않음)
+  // 예전 형식(월별 배민·쿠팡)으로 저장된 내용은 그 달의 '기존 입력분' 주차로 옮김
+  const oldBm = Array.isArray(d.baemin) ? d.baemin : [];
+  const oldCp = d.coupang && typeof d.coupang === "object" && !Array.isArray(d.coupang.rows) ? d.coupang : {};
+  new Set([...oldBm.map(b => b.month || ""), ...Object.keys(oldCp)]).forEach(mk => {
+    const bm = oldBm.filter(b => (b.month || "") === mk);
+    const cp = oldCp[mk] || { basis: "", rows: [] };
+    if (!bm.length && !(cp.rows || []).length && !cp.basis) return;
+    out.weeks.push(fixWeek({ month: mk, title: "기존 입력분", order: 999,
+      baemin: bm.map(b => ({ id: b.id, company: b.item || "", settle: b.amount || "" })), coupang: cp }));
+  });
+  return out;
+}
+
+/* ── 월 / 주차 ── */
+function isRd(r) { return String(r.rep || "").replace(/\s/g, "").includes(RD_NAME); }
+function rdRows() { return settleRows.filter(isRd); }
+function rowDate(r) { return r.endDate || r.startDate || ""; }
+function monthOf(d) { return /^\d{4}-\d{2}/.test(d || "") ? d.slice(0, 7) : ""; }
+function monthLabel(k) { if (!k) return "날짜 없음"; const [y, m] = k.split("-"); return `${y.slice(2)}년 ${parseInt(m, 10)}월`; }
+function curMonthKey() { const t = new Date(); return t.getFullYear() + "-" + pad(t.getMonth() + 1); }
+function shortDate(d) { if (!d) return ""; const [, m, dd] = d.split("-"); return `${parseInt(m, 10)}.${parseInt(dd, 10)}`; }
+function periodLabel(w) { return !w.start && !w.end ? "기간 없음" : w.start === w.end ? shortDate(w.start) : `${shortDate(w.start)} ~ ${shortDate(w.end)}`; }
+function W(id) {   // 주차 또는 주차 안의 복사 묶음
+  for (const w of D.weeks) {
+    if (w.id === id) return w;
+    const c = (w.copies || []).find(x => x.id === id);
+    if (c) return c;
+  }
+  return null;
+}
+function blocksOf(w) {   // 화면 순서: 날짜가 이 주차보다 이르거나 같은 복사 묶음 → 이 주차 → 늦은 복사 묶음
+  const cs = [...(w.copies || [])].sort((a, b) => (a.start || "").localeCompare(b.start || ""));
+  const before = cs.filter(c => !w.start || (c.start || "") <= w.start);
+  return [...before, w, ...cs.filter(c => !before.includes(c))];
+}
+function weeksOf(mk) { return D.weeks.filter(w => w.month === mk).sort((a, b) => a.order - b.order); }
+function maxOrder(mk) { return weeksOf(mk).reduce((m, w) => Math.max(m, w.order), 0); }
+function weekOfRow(r) {   // 그 행이 원래 속하는 주차 (복사본 주차는 제외)
+  const d = rowDate(r);
+  const list = weeksOf(monthOf(d)).filter(w => !w.linked);
+  if (!d) return list.find(w => !w.start && !w.end) || null;
+  return list.find(w => w.start && w.end && w.start <= d && d <= w.end) || null;
+}
+function newWeek(mk, title, start, end) {
+  const w = fixWeek({ month: mk, title: title ?? `${weeksOf(mk).length + 1}주차`, start, end, order: maxOrder(mk) + 1 });
+  D.weeks.push(w);
+  return w;
+}
+function isDismissed(r) {
+  const d = rowDate(r);
+  return D.dismissed.some(p => d ? (p.start && p.end && p.start <= d && d <= p.end) : (!p.start && !p.end));
+}
+/* 정산 현황 관리에 아직 주차가 없는 기간이 있으면 그 기간의 주차를 만듦 (삭제한 기간은 제외) */
+function ensureWeeks() {
+  if (READONLY) return false;
+  const periods = {};
+  rdRows().forEach(r => {
+    if (weekOfRow(r) || isDismissed(r)) return;
+    const s = r.startDate || r.endDate || "", e = r.endDate || r.startDate || "";
+    periods[s + "__" + e] = { s, e };
+  });
+  const list = Object.values(periods).sort((a, b) => (a.s || "9").localeCompare(b.s || "9"));
+  let made = 0;
+  list.forEach(p => {
+    if (weekOfRow({ startDate: p.s, endDate: p.e })) return;
+    const mk = monthOf(p.e);
+    const w = newWeek(mk, p.e ? "" : "날짜 없음", p.s, p.e); made++;
+    // 기간 순서에 맞는 자리에 끼워 넣음 (기간 없는 주차보다는 앞)
+    const rest = weeksOf(mk).filter(x => x !== w);
+    let i = rest.findIndex(x => !x.start || x.start > p.s);
+    if (i < 0) i = rest.length;
+    rest.splice(i, 0, w);
+    rest.forEach((x, n) => x.order = n + 1);
+  });
+  return made > 0;
+}
+function buildRowMap() {
+  const m = new Map();
+  if (READONLY) { D.weeks.forEach(w => blocksOf(w).forEach(b => m.set(b.id, b.rd || []))); return m; }
+  rdRows().forEach(r => {
+    const w = weekOfRow(r); if (!w) return;
+    if (!m.has(w.id)) m.set(w.id, []);
+    m.get(w.id).push(r);
+  });
+  // 다른 곳으로 복사한 주차는 같은 기간의 데이터를 그대로 따라옴
+  D.weeks.flatMap(blocksOf).filter(w => w.linked && w.start && w.end).forEach(w => {
+    m.set(w.id, rdRows().filter(r => { const d = rowDate(r); return d && w.start <= d && d <= w.end; }));
+  });
+  m.forEach(list => list.sort((a, b) => (a.startDate || "").localeCompare(b.startDate || "")));
+  return m;
+}
+function blockStats(b) {
+  const rd = rowMap.get(b.id) || [];
+  return { rd, rdSum: sum(rd, "amount"), bmSum: sum(b.baemin, "final"), cpSum: sum(b.coupang.rows, "amount"), bm: b.baemin.length, cp: b.coupang.rows.length };
+}
+function weekStats(w) {   // 주차 + 복사해 온 묶음 합계
+  const t = { rd: [], rdSum: 0, bmSum: 0, cpSum: 0, bm: 0, cp: 0 };
+  blocksOf(w).forEach(b => { const s = blockStats(b); t.rd.push(...s.rd); t.rdSum += s.rdSum; t.bmSum += s.bmSum; t.cpSum += s.cpSum; t.bm += s.bm; t.cp += s.cp; });
+  return t;
+}
+function allMonths() {
+  const s = new Set(D.weeks.map(w => w.month));
+  if (!READONLY) { D.months.forEach(m => s.add(m)); s.add(curMonthKey()); }
+  return [...s].sort((a, b) => (b || "0").localeCompare(a || "0"));   // 최근 월이 앞, '날짜 없음'은 맨 뒤
+}
+function pickMonth(k) { UI.month = k; saveUi(); render(); }
+function addMonth(v) {
+  if (!/^\d{4}-\d{2}$/.test(v)) return;
+  if (!D.months.includes(v)) { D.months.push(v); save(); }
+  pickMonth(v);
+}
+/* 제목이 비어 있는 자동 주차는 기간 순서대로 'N주차' */
+function weekTitle(w) {
+  if (w.title) return w.title;
+  const list = weeksOf(w.month).filter(x => x.start && !x.linked).sort((a, b) => a.start.localeCompare(b.start));
+  const i = list.indexOf(w);
+  return i >= 0 ? `${i + 1}주차` : "주차";
+}
+
+/* =========================================================
+   화면 그리기
+   ========================================================= */
+function isClosed(k) { return UI.closed.includes(k); }
+function toggleClosed(k) {
+  const i = UI.closed.indexOf(k);
+  if (i >= 0) UI.closed.splice(i, 1); else UI.closed.push(k);
+  saveUi(); render();
+}
+function openKey(k) { UI.closed = UI.closed.filter(x => x !== k); saveUi(); }
+
+function render() {
+  if (ensureWeeks()) save();
+  rowMap = buildRowMap();
+  const months = allMonths();
+  if (!months.includes(UI.month)) {   // 처음 열면 데이터가 있는 가장 최근 월
+    UI.month = months.find(mk => weeksOf(mk).length) ?? months[0] ?? curMonthKey();
+  }
+  renderMonths(months);
+  renderWeeks();
+  refreshTotals();
+}
+
+function renderMonths(months) {
+  const tabs = months.map(mk => {
+    const n = weeksOf(mk).length;
+    return `<button class="mtab${mk === UI.month ? " on" : ""}" onclick="pickMonth('${mk}')">${monthLabel(mk)}<span class="cnt">${n}주</span></button>`;
+  }).join("");
+  document.getElementById("months").innerHTML = tabs +
+    `<label class="madd owner-only" title="다른 월 추가"><i class="ti ti-plus"></i> 월 추가<input type="month" onchange="addMonth(this.value)"></label>`;
+}
+
+function handleHtml(type, id) {
+  if (READONLY) return "";
+  return `<span class="handle" draggable="true" ondragstart="dragStart(event,'${type}','${id}')" onclick="event.stopPropagation()" title="끌어서 순서 바꾸기"><i class="ti ti-grip-vertical"></i></span>`;
+}
+
+function renderWeeks() {
+  const list = weeksOf(UI.month);
+  let html = list.map(weekHtml).join("");
+  if (!list.length) html = `<div class="msg-box" style="margin-bottom:12px">${monthLabel(UI.month)}에는 아직 주차가 없어요.${READONLY ? "" : " 정산 현황 관리에 알디솔루션 데이터가 생기면 자동으로 만들어지고, 아래 버튼으로 직접 만들 수도 있어요."}</div>`;
+  if (!READONLY) html += `<button class="week-add" onclick="addWeek()"><i class="ti ti-plus"></i> 주차 추가</button>`;
+  document.getElementById("weeks").innerHTML = html;
+}
+
+function weekHtml(w) {
+  const k = "w:" + w.id;
+  const title = READONLY ? `<span class="week-title">${esc(weekTitle(w))}</span>`
+    : `<input class="week-title" value="${esc(weekTitle(w))}" onclick="event.stopPropagation()" oninput="setWeek('${w.id}','title',this.value)" title="이름 바꾸기">`;
+  const period = READONLY ? esc(periodLabel(w))
+    : `<input type="date" value="${w.start}" onchange="setWeekDate('${w.id}','start',this.value)"> ~ <input type="date" value="${w.end}" onchange="setWeekDate('${w.id}','end',this.value)">`;
+  const actions = READONLY ? "" : `<span class="sec-actions" onclick="event.stopPropagation()">
+      <button class="sec-btn" onclick="openCopy('${w.id}')"><i class="ti ti-copy"></i> 다른 월로 복사</button>
+      <button class="sec-btn danger" onclick="delWeek('${w.id}')"><i class="ti ti-trash"></i> 주차 삭제</button></span>`;
+  return `<div class="week${isClosed(k) ? " closed" : ""}" data-id="${w.id}" onclick="activeWeek='${w.id}'"
+      ondragover="dragOver(event,'week','${w.id}')" ondragleave="dragLeave(event)" ondrop="dropOn(event,'week','${w.id}')">
+    <div class="week-head" onclick="toggleClosed('${k}')">
+      ${handleHtml("week", w.id)}<i class="ti ti-chevron-down chev"></i>${title}
+      <span class="week-period" onclick="event.stopPropagation()"><i class="ti ti-calendar"></i> ${period}</span>
+      ${w.linked ? `<span class="chip" title="다른 월에서 복사한 주차예요. 이 기간의 알디솔루션 데이터를 그대로 따라와요.">복사본</span>` : ""}
+      <span class="week-sum" id="wsum-${w.id}"></span>${actions}
+    </div>
+    <div class="week-body">${blocksOf(w).map(b => b === w ? w.sections.map(s => secHtml(w, s)).join("") : copyHtml(b)).join("")}</div>
+  </div>`;
+}
+
+function copyHtml(c) {
+  const k = "c:" + c.id;
+  const del = READONLY ? "" : `<button class="sec-btn danger" onclick="event.stopPropagation();delCopy('${c.id}')"><i class="ti ti-trash"></i> 이 복사본 삭제</button>`;
+  return `<div class="copy${isClosed(k) ? " closed" : ""}">
+    <div class="copy-head" onclick="toggleClosed('${k}')">
+      <i class="ti ti-chevron-down chev"></i><i class="ti ti-corner-down-right"></i>
+      <b>${esc(c.title || "복사본")}</b><span>${esc(periodLabel(c))}</span>
+      ${c.from ? `<span class="chip">${esc(monthLabel(c.from))}에서 복사</span>` : ""}
+      <span class="week-sum" id="wsum-${c.id}"></span>${del}
+    </div>
+    <div class="copy-body">${c.sections.map(s => secHtml(c, s)).join("")}</div>
+  </div>`;
+}
+function delCopy(id) {
+  const c = W(id), w = c && W(c.parent); if (!w) return;
+  if (!confirm(`'${c.title || "복사본"}' (${periodLabel(c)}) 복사본을 삭제할까요?\n(정산 현황 관리의 원본 데이터는 그대로예요)`)) return;
+  w.copies = w.copies.filter(x => x.id !== id);
+  save(); render();
+}
+
+function secHtml(w, s) {
+  const k = `s:${w.id}:${s}`, id = `${w.id}:${s}`;
+  const rd = rowMap.get(w.id) || [];
+  let titleHtml, extra = "", body, count;
+  if (s === "rd") {
+    titleHtml = `<i class="ti ti-receipt-2" style="color:var(--c)"></i><span class="sec-title">알디솔루션 정산현황</span>`;
+    count = rd.length;
+    extra = READONLY ? "" : `<span class="live"><i class="ti ti-refresh"></i> 정산 현황 관리와 실시간 연동</span>`;
+    body = rdTable(rd);
+  } else if (s === "bm") {
+    titleHtml = `<i class="ti ti-motorbike" style="color:var(--c)"></i><span class="sec-title">배민 일선정산</span>`;
+    count = w.baemin.length;
+    extra = READONLY ? "" : `<span class="sec-actions" onclick="event.stopPropagation()">
+        <button class="sec-btn" onclick="pasteButton('${w.id}','bm')" title="배민 정산 화면 표를 복사한 내용 넣기"><i class="ti ti-clipboard-text"></i> 붙여넣기</button>
+        <button class="sec-btn" onclick="ocrPick('${w.id}')"><i class="ti ti-photo-scan"></i> 캡쳐 업로드</button>
+        <button class="sec-btn" onclick="addBm('${w.id}')"><i class="ti ti-plus"></i> 행 추가</button>
+        <button class="sec-btn danger" onclick="clearBm('${w.id}')"><i class="ti ti-trash"></i> 전체 삭제</button></span>`;
+    body = (READONLY ? "" : `<div class="hint"><i class="ti ti-info-circle"></i> <b>가장 정확한 방법:</b> 배민 정산 화면의 표를 마우스로 끌어 선택해 복사한 뒤, 이 항목을 한 번 누르고 <b>Ctrl+V</b> (또는 붙여넣기 버튼). 줄마다 칸에 맞춰 바로 들어가요. 캡쳐 이미지를 올려도 글자를 읽어서 넣어 줘요.</div>`) + bmTable(w) + feeHtml(w);
+  } else {
+    titleHtml = `<i class="ti ti-truck-delivery" style="color:var(--c)"></i><span class="sec-title">쿠팡 일선정산</span>`;
+    count = w.coupang.rows.length;
+    extra = (READONLY ? "" : `<span class="sec-actions" onclick="event.stopPropagation()">
+        <button class="sec-btn" onclick="pasteButton('${w.id}','cp')" title="엑셀에서 복사한 내용 넣기"><i class="ti ti-clipboard-text"></i> 붙여넣기</button>
+        <button class="sec-btn" onclick="addCp('${w.id}')"><i class="ti ti-plus"></i> 행 추가</button>
+        <button class="sec-btn danger" onclick="clearCp('${w.id}')"><i class="ti ti-trash"></i> 전체 삭제</button></span>`)
+      + `<div class="sec-basis" onclick="event.stopPropagation()"><i class="ti ti-calendar-event"></i> 결제일 기준 `
+      + (READONLY ? `<b>${esc(w.coupang.basis) || "-"}</b>`
+                  : `<input placeholder="예) 10.1 ~ 10.7 결제분 / 매주 수요일 결제" value="${esc(w.coupang.basis)}" oninput="setBasis('${w.id}',this.value)">`)
+      + `</div>`;
+    body = (READONLY ? "" : `<div class="hint"><i class="ti ti-info-circle"></i> 엑셀에서 <b>협력사 · 결제금액</b> 칸을 여러 줄 복사한 뒤, 이 항목을 한 번 누르고 <b>Ctrl+V</b> 하면 줄마다 행으로 들어가요.</div>`) + cpTable(w);
+  }
+  return `<div class="sec ${s}${isClosed(k) ? " closed" : ""}" data-sec="${s}" data-wid="${w.id}" ondragover="dragOver(event,'sec','${id}')" ondragleave="dragLeave(event)" ondrop="dropOn(event,'sec','${id}')">
+    <div class="sec-head" onclick="toggleClosed('${k}')">
+      ${handleHtml("sec", id)}<i class="ti ti-chevron-down chev"></i>${titleHtml}
+      <span class="sec-count">${count}건</span><span class="sec-sum" id="ssum-${w.id}-${s}"></span>${extra}
+    </div>
+    <div class="sec-body">${body}</div>
+  </div>`;
+}
+
+/* ── 표 머리 (칸 너비 조절 손잡이 포함) ── */
+function colDefs(k) { return READONLY && k !== "rd" ? COLS[k].slice(0, -1) : COLS[k]; }
+function colWidths(k) {
+  const defs = colDefs(k);
+  let saved = (UI.colw || {})[k] || [];
+  if (saved.length !== COLS[k].length && saved.length !== defs.length) saved = [];   // 칸이 바뀌었으면 기본 너비
+  return defs.map((c, i) => saved[i] || c[1]);
+}
+function tableOpen(k, thExtra) {
+  const ws = colWidths(k);
+  return `<table class="grid" data-k="${k}" style="width:100%;min-width:${ws.reduce((a, b) => a + b, 0)}px">
+    <colgroup>${ws.map(w => `<col style="width:${w}px">`).join("")}<col></colgroup>
+    <thead><tr>${colDefs(k).map((c, i) => `<th class="${c[2] || ""}">${c[0]}${thExtra ? thExtra(i) : ""}${c[0] ? `<span class="col-resizer" onmousedown="startResize(event,'${k}',${i})"></span>` : ""}</th>`).join("")}</tr></thead>`;
+}
+/* 칸을 줄여도 표 오른쪽이 하얗게 비지 않도록: 줄마다 맨 끝에 남는 폭을 채우는 빈 칸을 붙임 */
+function fillRows(html) { return html.replace(/<\/tr>/g, '<td class="fill"></td></tr>'); }
+function startResize(e, k, i) {
+  e.preventDefault(); e.stopPropagation();
+  const ws = colWidths(k), startX = e.pageX, startW = ws[i], el = e.target;
+  el.classList.add("active");
+  const apply = w => {
+    ws[i] = w;
+    document.querySelectorAll(`table.grid[data-k="${k}"]`).forEach(t => {
+      t.querySelectorAll("col")[i].style.width = w + "px";
+      t.style.minWidth = ws.reduce((a, b) => a + b, 0) + "px";
+    });
+  };
+  const mv = ev => apply(Math.max(36, startW + ev.pageX - startX));
+  const up = () => {
+    document.removeEventListener("mousemove", mv); document.removeEventListener("mouseup", up);
+    el.classList.remove("active");
+    UI.colw = UI.colw || {}; UI.colw[k] = ws; saveUi();
+  };
+  document.addEventListener("mousemove", mv); document.addEventListener("mouseup", up);
+}
+
+/* 정산 현황 관리와 같은 칸으로 보여줌 (읽기 전용) */
+function settleTypeClass(v) { return v === "일선정산" ? "type-il" : v === "주정산" ? "type-ju" : v === "보험료 소급" ? "type-so" : "none"; }
+function statusBadge(v) { return v === "완료" ? `<span class="badge done">✓ 완료</span>` : `<span class="badge pending">✗ 미완료</span>`; }
+function rdTable(list) {
+  if (!list.length) return `<div class="empty">이 주차 기간에 대표자가 '${RD_NAME}'인 정산 데이터가 없어요.</div>`;
+  const body = list.map((r, i) => `<tr>
+      <td class="row-num">${i + 1}</td>
+      <td>${esc(r.startDate)}</td><td>${esc(r.endDate)}</td>
+      <td title="${esc(r.company)}">${esc(r.company)}</td><td>${esc(r.rep)}</td>
+      <td>${esc(r.acct)}</td><td>${esc(r.bank)}</td>
+      <td><span class="badge ${settleTypeClass(r.settleType)}">${esc(r.settleType) || "-"}</span></td>
+      <td class="num">${fmt(r.amount)}</td>
+      <td>${statusBadge(r.settle)}</td><td>${statusBadge(r.tax)}</td>
+      <td title="${esc(r.memo)}">${esc(r.memo)}</td>
+    </tr>`).join("");
+  return fillRows(tableOpen("rd") + `<tbody>${body}<tr class="subtotal"><td colspan="8" class="sub-label">이체 합계</td><td class="num">${fmt(sum(list, "amount"))}</td><td colspan="3"></td></tr></tbody></table>`);
+}
+
+/* 입력칸 (공유 보기에서는 글자만) */
+function cellInput(val, handler, opts = {}) {
+  if (READONLY) return opts.amount ? fmt(val) : esc(val);
+  if (opts.amount) {
+    return `<input class="editable num" value="${fmt(val)}" onfocus="this.value=this.value.replace(/[^0-9\\-]/g,'')" onblur="this.value=fmt(this.value)" oninput="${handler}">`;
+  }
+  return `<input class="editable" placeholder="${opts.ph || ""}" value="${esc(val)}" oninput="${handler}">`;
+}
+function delCell(fn) { return READONLY ? "" : `<td class="del-cell"><button class="del-btn" onclick="${fn}" title="삭제">✕</button></td>`; }
+
+function bmTable(w) {
+  if (!w.baemin.length) return `<div class="empty">아직 배민 일선정산 내역이 없어요.${READONLY ? "" : " 표를 복사해서 붙여넣거나 캡쳐를 올려 주세요."}</div>`;
+  const rows = bmRows(w);
+  const body = rows.map((b, i) => `<tr><td class="row-num">${i + 1}</td>`
+    + BM_FIELDS.map(f => f.k === "diff"
+        ? `<td class="num" id="bd-${b.id}"><span class="raw">${cellInput(b.diff, `setBm('${w.id}','${b.id}','diff',this.value)`, { amount: true })}</span><span class="adj" hidden></span></td>`
+        : `<td class="${f.amount ? "num" : ""}">${cellInput(b[f.k], `setBm('${w.id}','${b.id}','${f.k}',this.value)`, { amount: f.amount })}</td>`).join("")
+    + delCell(`delBm('${w.id}','${b.id}')`) + `</tr>`).join("");
+  const filtered = rows.length !== w.baemin.length;
+  const foot = `<tr class="subtotal"><td colspan="${BM_TEXT.length + 1}" class="sub-label">합계${filtered ? ` (필터 ${rows.length} / ${w.baemin.length}건)` : ""}</td>`
+    + BM_AMOUNT.map(k => `<td class="num" id="bf-${w.id}-${k}"></td>`).join("") + (READONLY ? "" : "<td></td>") + `</tr>`;
+  const holderCol = BM_FIELDS.findIndex(f => f.k === "holder") + 1;
+  const on = bmView[w.id] && bmView[w.id].holders;
+  const thExtra = i => i === holderCol ? `<span class="th-filter${on ? " on" : ""}" title="대표자(계좌주)로 정렬·골라 보기" onclick="openHolderMenu(event,'${w.id}')"><i class="ti ti-filter"></i></span>` : "";
+  return fillRows(tableOpen("bm", thExtra) + `<tbody>${body}${foot}</tbody></table>`);
+}
+
+/* ── 대표자(계좌주) 정렬 · 필터 ── 정렬은 저장되고, 필터는 이 화면에서만 */
+let bmView = {};   // 묶음 id → { holders: Set(보이는 계좌주) }
+function bmRows(w) { const v = bmView[w.id]; return v && v.holders ? w.baemin.filter(b => v.holders.has(b.holder || "")) : w.baemin; }
+function openHolderMenu(e, wid) {
+  e.stopPropagation();
+  const w = W(wid); if (!w) return;
+  const menu = document.getElementById("holderMenu");
+  const vals = [...new Set(w.baemin.map(b => b.holder || ""))].sort((a, b) => a.localeCompare(b, "ko"));
+  const cur = (bmView[wid] || {}).holders;
+  menu.innerHTML = `<div class="hm-sort">
+      <button onclick="sortBm('${wid}',1)"><i class="ti ti-sort-ascending-letters"></i> 대표자 오름차순 (가→하)</button>
+      <button onclick="sortBm('${wid}',-1)"><i class="ti ti-sort-descending-letters"></i> 대표자 내림차순 (하→가)</button></div>
+    <input class="hm-search" placeholder="대표자 검색" oninput="hmSearch(this.value)">
+    <div class="hm-actions"><a onclick="hmAll(true)">모두 선택</a><a onclick="hmAll(false)">모두 지우기</a></div>
+    <div class="hm-list">${vals.map(v => `<label class="hm-item"><input type="checkbox" value="${esc(v)}" ${!cur || cur.has(v) ? "checked" : ""}><span>${esc(v) || "(빈칸)"}</span><em>${w.baemin.filter(b => (b.holder || "") === v).length}</em></label>`).join("")}</div>
+    <div class="hm-btns"><button onclick="closeHolderMenu()">취소</button><button class="primary" onclick="applyHolder('${wid}')">확인</button></div>`;
+  const r = e.currentTarget.getBoundingClientRect();
+  menu.style.top = (r.bottom + 4) + "px";
+  menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 250)) + "px";
+  menu.hidden = false;
+}
+function closeHolderMenu() { document.getElementById("holderMenu").hidden = true; }
+function hmSearch(q) { q = q.trim().toLowerCase(); document.querySelectorAll("#holderMenu .hm-item").forEach(el => el.style.display = el.textContent.toLowerCase().includes(q) ? "" : "none"); }
+function hmAll(on) { document.querySelectorAll("#holderMenu .hm-item").forEach(el => { if (el.style.display !== "none") el.querySelector("input").checked = on; }); }
+function applyHolder(wid) {
+  const boxes = [...document.querySelectorAll("#holderMenu .hm-item input")];
+  bmView[wid] = boxes.every(b => b.checked) ? {} : { holders: new Set(boxes.filter(b => b.checked).map(b => b.value)) };
+  closeHolderMenu(); render();
+}
+function sortBm(wid, dir) {
+  const w = W(wid); if (!w) return;
+  w.baemin.sort((a, b) => {
+    const x = a.holder || "", y = b.holder || "";
+    if (!x !== !y) return x ? -1 : 1;   // 빈칸은 항상 맨 아래
+    return x.localeCompare(y, "ko") * dir || (a.company || "").localeCompare(b.company || "", "ko");
+  });
+  closeHolderMenu(); save(); render();
+}
+document.addEventListener("click", e => { const m = document.getElementById("holderMenu"); if (!m.hidden && !e.target.closest("#holderMenu")) m.hidden = true; });
+
+/* ── 배민 일선정산 수수료 미차감된 협력사 내역 ──
+   수수료 = 총배달료 × 수수료율(기본 1.1%), 최종 정산액 = 본 정산액 − 수수료
+   협력사 이름이 같은 배민 행이 있으면 그 행의 정산차액에서 수수료를 뺌 (원래 값은 그대로 두고 계산해서 보여줌) */
+function nameKey(s) { return String(s || "").replace(/\s/g, "").toLowerCase(); }
+function feeAmount(w, f) { return Math.round(num(f.total) * (parseFloat(w.bmFee.rate) || 0) / 100); }
+function feeByCompany(w) {
+  const m = {};
+  w.bmFee.rows.forEach(f => { const k = nameKey(f.company); if (k) m[k] = (m[k] || 0) + feeAmount(w, f); });
+  return m;
+}
+function adjDiff(w, b, fees) { const fee = (fees || feeByCompany(w))[nameKey(b.company)]; return fee ? { fee, value: num(b.diff) - fee } : null; }
+function diffValue(w, b, fees) { const a = adjDiff(w, b, fees); return a ? String(a.value) : b.diff; }
+function feeHtml(w) {
+  const F = w.bmFee;
+  const rate = READONLY ? `<b>${esc(F.rate)}%</b>` : `<input class="fee-rate" value="${esc(F.rate)}" oninput="setFeeRate('${w.id}',this.value)">%`;
+  const actions = READONLY ? "" : `<span class="sec-actions">
+      <button class="sec-btn" onclick="pasteButton('${w.id}','fee')" title="엑셀에서 복사한 내용 넣기"><i class="ti ti-clipboard-text"></i> 붙여넣기</button>
+      <button class="sec-btn" onclick="addFee('${w.id}')"><i class="ti ti-plus"></i> 행 추가</button>
+      ${F.rows.length ? `<button class="sec-btn danger" onclick="clearFee('${w.id}')"><i class="ti ti-trash"></i> 전체 삭제</button>` : ""}</span>`;
+  const amt = (f, k) => READONLY ? fmt(f[k])
+    : `<input class="editable num" value="${fmt(f[k])}" onfocus="this.value=this.value.replace(/[^0-9\\-]/g,'')" onblur="this.value=fmt(this.value)" oninput="setFee('${w.id}','${f.id}','${k}',this.value)">`;
+  const body = F.rows.map((f, i) => `<tr>
+      <td class="row-num">${i + 1}</td>
+      <td>${READONLY ? esc(f.company) : `<input class="editable" placeholder="협력사명" value="${esc(f.company)}" oninput="setFee('${w.id}','${f.id}','company',this.value)">`}</td>
+      <td class="num">${amt(f, "total")}</td>
+      <td class="num" id="ff-${f.id}"></td>
+      <td class="num">${amt(f, "settle")}</td>
+      <td class="num" id="fn-${f.id}"></td>
+      <td id="fs-${f.id}"></td>
+      ${delCell(`delFee('${w.id}','${f.id}')`)}
+    </tr>`).join("");
+  const table = F.rows.length ? fillRows(tableOpen("fee") + `<tbody>${body}<tr class="subtotal"><td colspan="2" class="sub-label">합계</td>`
+      + `<td class="num" id="ft-${w.id}-total"></td><td class="num" id="ft-${w.id}-fee"></td><td class="num" id="ft-${w.id}-settle"></td><td class="num" id="ft-${w.id}-final"></td><td></td>${READONLY ? "" : "<td></td>"}</tr></tbody></table>`)
+    : `<div class="empty">${READONLY ? "없음" : "수수료가 차감되지 않은 협력사가 있으면 행 추가 또는 엑셀에서 복사해 붙여넣기 해 주세요. (협력사 · 총배달료 · 수수료 · 본 정산액 · 최종 정산액)"}</div>`;
+  return `<div class="fee-box">
+    <div class="fee-head"><i class="ti ti-receipt-tax"></i><b>배민 일선정산 수수료 미차감된 협력사 내역</b>
+      <span class="fee-rate-wrap">수수료율 ${rate}</span>${actions}</div>
+    ${table}
+  </div>`;
+}
+function setFeeRate(wid, v) { const w = W(wid); if (!w) return; w.bmFee.rate = v; save(); refreshTotals(); }
+function setFee(wid, fid, k, v) { const f = (W(wid) || { bmFee: { rows: [] } }).bmFee.rows.find(x => x.id === fid); if (!f) return; f[k] = v; save(); refreshTotals(); }
+function addFee(wid) { const w = W(wid); if (!w) return; w.bmFee.rows.push({ id: uid(), company: "", total: "", settle: "" }); save(); render(); }
+function delFee(wid, fid) { if (!confirm("이 행을 삭제할까요?")) return; const w = W(wid); w.bmFee.rows = w.bmFee.rows.filter(x => x.id !== fid); save(); render(); }
+function clearFee(wid) {
+  const w = W(wid); if (!w || !w.bmFee.rows.length) return;
+  if (!confirm(`수수료 미차감 협력사 ${w.bmFee.rows.length}건을 모두 삭제할까요?`)) return;
+  w.bmFee.rows = []; save(); render();
+}
+function pasteFee(wid, text) {
+  const w = W(wid); if (!w) return;
+  const add = [];
+  text.replace(/\r/g, "").split("\n").forEach(line => {
+    const cells = line.split("\t").map(c => c.trim()).filter(Boolean);
+    const nums = cells.filter(looksMoney), texts = cells.filter(c => !looksMoney(c));
+    if (!nums.length) return;   // 제목·머리글 줄
+    // 칸 순서: 협력사 · 총배달료 · (수수료) · 본 정산액 · (최종 정산액) — 수수료·최종은 다시 계산함
+    const total = nums[0], settle = nums.length >= 3 ? nums[2] : nums.length === 2 ? nums[1] : "";
+    add.push({ id: uid(), company: texts[0] || "", total: cleanAmount(total), settle: settle ? cleanAmount(settle) : "" });
+  });
+  if (!add.length) { alert("붙여넣은 내용에서 행을 찾지 못했어요. 엑셀에서 협력사 · 총배달료 · 수수료 · 본 정산액 칸을 함께 복사해 주세요."); return; }
+  w.bmFee.rows.push(...add);
+  save(); render();
+  flash(`수수료 미차감 협력사 ${add.length}건을 넣었어요`);
+}
+
+function cpTable(w) {
+  const list = w.coupang.rows;
+  if (!list.length) return `<div class="empty">아직 쿠팡 일선정산 내역이 없어요.${READONLY ? "" : " 행 추가를 눌러 협력사와 결제금액을 넣어 주세요."}</div>`;
+  const body = list.map((c, i) => `<tr>
+      <td class="row-num">${i + 1}</td>
+      <td>${cellInput(c.company, `setCp('${w.id}','${c.id}','company',this.value)`, { ph: "협력사" })}</td>
+      <td class="num">${cellInput(c.amount, `setCp('${w.id}','${c.id}','amount',this.value)`, { amount: true })}</td>
+      ${delCell(`delCp('${w.id}','${c.id}')`)}
+    </tr>`).join("");
+  return fillRows(tableOpen("cp") + `<tbody>${body}<tr class="subtotal"><td colspan="2" class="sub-label">고고플러스에서 차감되어야 할 합계</td><td class="num" id="cf-${w.id}"></td>${READONLY ? "" : "<td></td>"}</tr></tbody></table>`);
+}
+
+/* 합계만 다시 계산 (입력 중에 화면을 다시 그리지 않도록) */
+function refreshTotals() {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  let tJu = 0, tDiff = 0, tCp = 0;   // 맨 위 요약: 알디 '주정산' 합계 · 배민 정산차액 합계 (수수료 차감 반영) · 쿠팡 결제금액 합계
+  weeksOf(UI.month).forEach(w => {
+    blocksOf(w).forEach(b => {
+      tJu += (rowMap.get(b.id) || []).filter(r => r.settleType === "주정산").reduce((t, r) => t + num(r.amount), 0);
+      const allFees = feeByCompany(b);
+      tDiff += b.baemin.reduce((t, r) => t + num(diffValue(b, r, allFees)), 0);
+      tCp += sum(b.coupang.rows, "amount");
+      const bs = blockStats(b);
+      set(`ssum-${b.id}-rd`, "이체 합계 " + won(bs.rdSum));
+      set(`ssum-${b.id}-bm`, "최종송금 합계 " + won(bs.bmSum));
+      set(`ssum-${b.id}-cp`, "결제 합계 " + won(bs.cpSum));
+      const fees = feeByCompany(b), vis = bmRows(b);
+      BM_AMOUNT.forEach(k => set(`bf-${b.id}-${k}`, fmt(k === "diff" ? vis.reduce((t, r) => t + num(diffValue(b, r, fees)), 0) : sum(vis, k))));
+      vis.forEach(r => {   // 수수료가 있는 협력사는 정산차액을 차감한 값으로
+        const td = document.getElementById("bd-" + r.id); if (!td) return;
+        const a = adjDiff(b, r, fees);
+        td.querySelector(".raw").hidden = !!a;
+        const adj = td.querySelector(".adj"); adj.hidden = !a;
+        if (a) adj.innerHTML = `<b>${fmt(a.value)}</b><small>원래 ${fmt(r.diff)} − 수수료 ${fmt(a.fee)}</small>`;
+        td.title = a ? `원래 정산차액 ${fmt(r.diff)}에서 수수료 ${fmt(a.fee)}을 뺀 값이에요. (수수료는 아래 '수수료 미차감 협력사 내역'에서 고칠 수 있어요)` : "";
+      });
+      const bmNames = new Set(b.baemin.map(r => nameKey(r.company))), ft = { total: 0, fee: 0, settle: 0, final: 0 };
+      b.bmFee.rows.forEach(f => {
+        const fee = feeAmount(b, f), fin = num(f.settle) - fee;
+        ft.total += num(f.total); ft.fee += fee; ft.settle += num(f.settle); ft.final += fin;
+        set("ff-" + f.id, fmt(fee));
+        const fn = document.getElementById("fn-" + f.id); if (fn) { fn.textContent = fmt(fin); fn.className = "num" + (fin < 0 ? " neg" : ""); }
+        const st = document.getElementById("fs-" + f.id);
+        if (st) st.innerHTML = !nameKey(f.company) ? "" : bmNames.has(nameKey(f.company))
+          ? `<span class="fee-ok"><i class="ti ti-check"></i> 정산차액에서 차감</span>` : `<span class="fee-no"><i class="ti ti-alert-triangle"></i> 일치하는 협력사 없음</span>`;
+      });
+      Object.entries(ft).forEach(([k, v]) => set(`ft-${b.id}-${k}`, fmt(v)));
+      set(`cf-${b.id}`, fmt(bs.cpSum));
+    });
+  });
+  document.getElementById("summary").innerHTML = `
+    <div class="stat"><div class="stat-label">${monthLabel(UI.month)} 알디솔루션 주정산 합계</div><div class="stat-val">${won(tJu)}</div></div>
+    <div class="stat bm"><div class="stat-label">${monthLabel(UI.month)} 배민 일선정산 정산차액 합계</div><div class="stat-val">${won(tDiff)}</div></div>
+    <div class="stat cp"><div class="stat-label">${monthLabel(UI.month)} 쿠팡 일선정산 결제금액 합계</div><div class="stat-val">${won(tCp)}</div></div>`;
+}
+
+/* =========================================================
+   수정 (주차 / 배민 / 쿠팡)
+   ========================================================= */
+function setWeek(id, k, v) { const w = W(id); if (!w) return; w[k] = v; save(); }
+function setWeekDate(id, k, v) {
+  const w = W(id); if (!w) return;
+  w[k] = v;
+  if (w.start && w.end) D.dismissed = D.dismissed.filter(p => !(p.start <= w.end && w.start <= p.end));
+  if (k === "end" && v && !w.linked) { w.month = monthOf(v); UI.month = w.month; saveUi(); }
+  save(); render();
+}
+function addWeek() { newWeek(UI.month, undefined, "", ""); save(); render(); }
+function delWeek(id) {
+  const w = W(id); if (!w) return;
+  if (!confirm(`'${weekTitle(w)}' (${periodLabel(w)}) 그룹 전체를 삭제할까요?\n알디솔루션 정산현황 · 배민 · 쿠팡 · 복사본이 모두 이 탭에서 사라져요.\n(정산 현황 관리의 원본 데이터는 지워지지 않아요)`)) return;
+  // 이 기간의 알디솔루션 데이터로 주차가 다시 자동으로 만들어지지 않도록 기억
+  if (!w.linked && (rowMap.get(id) || []).length) D.dismissed.push({ start: w.start, end: w.end });
+  D.weeks = D.weeks.filter(x => x.id !== id);
+  save(); render();
+  flash(`'${weekTitle(w)}' 그룹을 삭제했어요`);
+}
+
+function setBm(wid, id, k, v) { const b = (W(wid) || { baemin: [] }).baemin.find(x => x.id === id); if (!b) return; b[k] = v; save(); if (BM_AMOUNT.includes(k) || k === "company") refreshTotals(); }
+function addBm(wid) { const w = W(wid); if (!w) return; w.baemin.push({ id: uid() }); openKey(`s:${wid}:bm`); save(); render(); }
+function delBm(wid, id) { if (!confirm("이 행을 삭제할까요?")) return; const w = W(wid); w.baemin = w.baemin.filter(x => x.id !== id); save(); render(); }
+function clearBm(wid) {
+  const w = W(wid); if (!w || !w.baemin.length) return;
+  if (!confirm(`'${weekTitle(w)}' 배민 일선정산 ${w.baemin.length}건을 모두 삭제할까요?\n되돌릴 수 없어요.`)) return;
+  w.baemin = []; save(); render();
+}
+function setBasis(wid, v) { const w = W(wid); if (!w) return; w.coupang.basis = v; save(); }
+function addCp(wid) { const w = W(wid); if (!w) return; w.coupang.rows.push({ id: uid(), company: "", amount: "" }); openKey(`s:${wid}:cp`); save(); render(); }
+function setCp(wid, id, k, v) { const c = (W(wid) || { coupang: { rows: [] } }).coupang.rows.find(x => x.id === id); if (!c) return; c[k] = v; save(); if (k === "amount") refreshTotals(); }
+function delCp(wid, id) { if (!confirm("이 행을 삭제할까요?")) return; const w = W(wid); w.coupang.rows = w.coupang.rows.filter(x => x.id !== id); save(); render(); }
+function clearCp(wid) {
+  const w = W(wid); if (!w || (!w.coupang.rows.length && !w.coupang.basis)) return;
+  if (!confirm(`'${weekTitle(w)}' 쿠팡 일선정산 ${w.coupang.rows.length}건과 결제일 기준을 모두 삭제할까요?\n되돌릴 수 없어요.`)) return;
+  w.coupang = { basis: "", rows: [] }; save(); render();
+}
+
+/* ── 끌어서 순서 바꾸기 (주차끼리 / 같은 주차 안의 항목끼리) ── */
+let drag = null;
+function dragStart(e, type, id) {
+  drag = { type, id };
+  e.stopPropagation();
+  e.dataTransfer.effectAllowed = "move";
+  try { e.dataTransfer.setData("text/plain", id); } catch (_) {}
+}
+function dragOver(e, type, id) {
+  if (!drag || drag.type !== type) return;
+  if (type === "sec" && drag.id.split(":")[0] !== id.split(":")[0]) return;
+  e.preventDefault(); e.stopPropagation();
+  const el = e.currentTarget, r = el.getBoundingClientRect();
+  const after = e.clientY > r.top + r.height / 2;
+  el.classList.toggle("drop-after", after); el.classList.toggle("drop-before", !after);
+}
+function dragLeave(e) { e.currentTarget.classList.remove("drop-before", "drop-after"); }
+function dropOn(e, type, id) {
+  if (!drag || drag.type !== type) return;
+  e.preventDefault(); e.stopPropagation();
+  const el = e.currentTarget, after = el.classList.contains("drop-after");
+  el.classList.remove("drop-before", "drop-after");
+  const src = drag.id; drag = null;
+  if (src === id) return;
+  if (type === "week") {
+    const list = weeksOf(UI.month), moving = W(src);
+    const rest = list.filter(w => w.id !== src);
+    let i = rest.findIndex(w => w.id === id); if (after) i++;
+    rest.splice(i, 0, moving);
+    rest.forEach((w, n) => w.order = n + 1);
+  } else {
+    const [wid, s] = src.split(":"), t = id.split(":")[1], w = W(wid);
+    const arr = w.sections.filter(x => x !== s);
+    let i = arr.indexOf(t); if (after) i++;
+    arr.splice(i, 0, s); w.sections = arr;
+  }
+  save(); render();
+}
+document.addEventListener("dragend", () => {
+  drag = null;
+  document.querySelectorAll(".drop-before,.drop-after").forEach(el => el.classList.remove("drop-before", "drop-after"));
+});
+
+/* ── 주차 복사 (다른 월로) ── */
+let copySrc = null;
+function shiftMonths(d, n) {
+  if (!d) return "";
+  const [y, m, dd] = d.split("-").map(Number);
+  const t = new Date(y, m - 1 + n, 1), last = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
+  return `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(Math.min(dd, last))}`;
+}
+function openCopy(id) {
+  const w = W(id); if (!w) return;
+  copySrc = id;
+  document.getElementById("copyTitle").textContent = `'${weekTitle(w)}' (${periodLabel(w)}) 복사`;
+  document.getElementById("copyRdLabel").textContent = `알디솔루션 정산현황 (${(rowMap.get(w.id) || []).length}건 · 같은 기간으로 연동)`;
+  document.getElementById("copyMonth").value = w.month ? shiftMonths(w.month + "-01", 1).slice(0, 7) : curMonthKey();
+  fillCopyTargets();
+  document.getElementById("copyModal").hidden = false;
+}
+function fillCopyTargets() {
+  const mk = document.getElementById("copyMonth").value;
+  document.getElementById("copyTarget").innerHTML = `<option value="new">새 주차로 추가</option>`
+    + weeksOf(mk).filter(w => w.id !== copySrc).map(w => `<option value="${w.id}">${esc(weekTitle(w))} (${esc(periodLabel(w))}) 안에 넣기</option>`).join("");
+}
+function doCopy() {
+  const src = W(copySrc), mk = document.getElementById("copyMonth").value;
+  if (!src || !/^\d{4}-\d{2}$/.test(mk)) { alert("복사할 월을 골라 주세요."); return; }
+  const tgt = document.getElementById("copyTarget").value;
+  // 알디솔루션 정산현황 박스만 복제 (날짜 그대로 → 같은 기간 데이터를 계속 따라옴). 배민·쿠팡은 가져오지 않음
+  const clone = (b, host) => ({
+    id: uid(), parent: host.id, month: host.month, linked: true, from: b.from || b.month, title: weekTitle(b),
+    start: b.start, end: b.end, sections: ["rd"], copies: [], baemin: [], coupang: { basis: "", rows: [] },
+  });
+  let dst;
+  if (tgt === "new") {   // 새 큰 박스: 날짜 그대로 (배민·쿠팡은 빈 칸) + 안에 있던 복사 묶음도 함께
+    dst = newWeek(mk, weekTitle(src), src.start, src.end);
+    dst.linked = true;
+    dst.copies = src.copies.map(c => clone(c, dst));
+  } else {               // 기존 큰 박스 안에 알디솔루션 박스를 넣음 (날짜순 자리에 놓임)
+    dst = W(tgt);
+    dst.copies.push(clone(src, dst), ...src.copies.map(c => clone(c, dst)));
+  }
+  if (!D.months.includes(mk)) D.months.push(mk);
+  closeModal("copyModal");
+  UI.month = mk; saveUi(); save(); render();
+}
+
+function closeModal(id) { document.getElementById(id).hidden = true; }
+
+/* =========================================================
+   저장 (브라우저 + 클라우드) / 불러오기 / 실시간 따라오기
+   ========================================================= */
+let pushTimer = null;
+function setCloud(state) {
+  const el = document.getElementById("saveStatus");
+  const map = {
+    saving: ["saving", "ti-loader-2", "저장 중..."],
+    loading: ["saving", "ti-loader-2", "불러오는 중..."],
+    err: ["err", "ti-cloud-off", "클라우드 저장 실패 (이 브라우저에는 저장됨)"],
+    local: ["err", "ti-cloud-off", "이 브라우저에만 저장"],
+  };
+  if (map[state]) {
+    const [c, i, t] = map[state];
+    el.className = "save-status owner-only " + c; el.innerHTML = `<i class="ti ${i}"></i><span>${t}</span>`;
+  } else {
+    const d = new Date();
+    el.className = "save-status owner-only";
+    el.innerHTML = `<i class="ti ti-cloud-check"></i><span>저장됨 ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}</span>`;
+  }
+}
+function save() {
+  if (READONLY) return;
+  try { localStorage.setItem(LS_DATA, JSON.stringify(D)); } catch (e) {}
+  if (!sb || !cloudReady) return;
+  setCloud("saving");
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(pushNow, 600);
+}
+async function pushNow() {
+  if (!cloudReady) return;
+  try {
+    const { error } = await sb.from(SB_TABLE).upsert({ id: SB_ID, data: D, updated_at: new Date().toISOString() });
+    if (error) throw error;
+    setCloud("ok");
+  } catch (e) { console.warn("알디솔루션 정산 저장 실패:", e.message || e); setCloud("err"); }
+}
+
+/* 정산 현황 관리 데이터가 바뀌면 → 입력 중이 아니면 바로 다시 그림 */
+let lastSettleStr = "", pendingRender = false;
+function onSettleRows(rows) {
+  if (!Array.isArray(rows)) return;
+  const s = JSON.stringify(rows);
+  if (s === lastSettleStr) return;
+  lastSettleStr = s; settleRows = rows;
+  const a = document.activeElement;
+  if (a && a.tagName === "INPUT" && a.closest("#weeks")) { pendingRender = true; rowMap = buildRowMap(); refreshTotals(); }
+  else render();
+}
+document.addEventListener("focusout", () => setTimeout(() => {
+  const a = document.activeElement;
+  if (pendingRender && !(a && a.tagName === "INPUT" && a.closest("#weeks"))) { pendingRender = false; render(); }
+}, 0));
+// 같은 브라우저의 정산 현황 관리 탭이 저장하면 바로 알 수 있음
+window.addEventListener("storage", e => {
+  if (READONLY || e.key !== "settle_rows" || !e.newValue) return;
+  try { onSettleRows(JSON.parse(e.newValue)); } catch (_) {}
+});
+
+async function fetchSettle() {
+  const { data, error } = await sb.from("settlement_data").select("rows").eq("id", "main").maybeSingle();
+  if (error) throw error;
+  return data && Array.isArray(data.rows) ? data.rows : null;
+}
+async function loadCloud() {
+  lastSettleStr = JSON.stringify(settleRows);
+  render();
+  if (!sb) { setCloud("local"); return; }
+  setCloud("loading");
+  try {
+    const [rows, mine] = await Promise.all([fetchSettle(), sb.from(SB_TABLE).select("data").eq("id", SB_ID).maybeSingle()]);
+    if (mine.error) throw mine.error;
+    if (rows) { settleRows = rows; lastSettleStr = JSON.stringify(rows); }
+    const hadCloud = !!(mine.data && mine.data.data);
+    if (hadCloud) D = normalize(mine.data.data);
+    cloudReady = true;
+    try { localStorage.setItem(LS_DATA, JSON.stringify(D)); } catch (e) {}
+    const made = ensureWeeks();
+    if (!hadCloud || made || mine.data.data.baemin) await pushNow(); else setCloud("ok");   // 처음이거나 바뀐 게 있으면 올림
+    render();
+  } catch (e) { console.warn("알디솔루션 정산 불러오기 실패:", e.message || e); setCloud("err"); }
+
+  // 다른 컴퓨터에서 바꿔도 따라오도록: 실시간 알림 + 30초마다 한 번 확인
+  sb.channel("rd-settle-sync")
+    .on("postgres_changes", { event: "*", schema: "public", table: "settlement_data", filter: "id=eq.main" }, p => {
+      if (p.new && Array.isArray(p.new.rows)) onSettleRows(p.new.rows);
+    })
+    .subscribe();
+  setInterval(() => fetchSettle().then(onSettleRows).catch(() => {}), 30000);
+}
+
+/* =========================================================
+   주차 고르기 → 엑셀 다운로드 / 확인용 파일
+   ========================================================= */
+let pickMode = "excel";
+function openPick(mode) {
+  pickMode = mode;
+  const months = allMonths().filter(mk => weeksOf(mk).length);
+  document.getElementById("pickTitle").textContent = mode === "excel" ? "엑셀로 받을 주차 선택" : "확인용 파일에 담을 주차 선택";
+  document.getElementById("pickBody").innerHTML = months.length ? months.map(mk => `
+      <div class="pick-month">${monthLabel(mk)} <a onclick="pickAll('${mk}')">모두 선택</a></div>
+      ${weeksOf(mk).map(w => { const s = weekStats(w); return `<label class="pick-item">
+        <input type="checkbox" value="${w.id}" data-m="${mk}" onchange="pickCount()">
+        <b>${esc(weekTitle(w))}</b><span>${esc(periodLabel(w))}</span>
+        <span class="muted">알디 ${s.rd.length} · 배민 ${s.bm} · 쿠팡 ${s.cp}건${w.copies.length ? ` · 복사본 ${w.copies.length}` : ""}</span></label>`; }).join("")}`).join("")
+    : `<div class="empty">아직 주차가 없어요.</div>`;
+  pickCount();
+  document.getElementById("pickModal").hidden = false;
+}
+function pickAll(mk) {
+  const boxes = [...document.querySelectorAll(`#pickBody input[data-m="${mk}"]`)];
+  const on = boxes.some(b => !b.checked);
+  boxes.forEach(b => b.checked = on); pickCount();
+}
+function pickedWeeks() {
+  const ids = [...document.querySelectorAll("#pickBody input:checked")].map(b => b.value);
+  return ids.map(W).filter(Boolean);
+}
+function pickCount() {
+  const n = pickedWeeks().length;
+  document.getElementById("pickCount").textContent = n ? `${n}개 주차 선택됨` : "주차를 골라 주세요";
+  const ok = document.getElementById("pickOk");
+  ok.textContent = pickMode === "excel" ? "엑셀 다운로드" : "확인용 파일 받기";
+  ok.disabled = !n;
+}
+function runPick() {
+  const ws = pickedWeeks(); if (!ws.length) return;
+  closeModal("pickModal");
+  if (pickMode === "excel") downloadExcel(ws); else makeShareFile(ws);
+}
+
+function sheetForWeek(w) {
+  const aoa = [[`${monthLabel(w.month)} ${weekTitle(w)}`, periodLabel(w)], []];
+  blocksOf(w).forEach(b => {
+    if (b !== w) aoa.push([`▶ ${b.title || "복사본"} (${periodLabel(b)})${b.from ? ` — ${monthLabel(b.from)}에서 복사` : ""}`], []);
+    blockRows(aoa, b);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [16, 14, 18, 14, 16, 14, 15, 14, 15, 15, 16, 14, 13].map(w => ({ wch: w }));
+  Object.keys(ws).forEach(a => { if (a[0] !== "!" && ws[a].t === "n") ws[a].z = "#,##0"; });
+  return ws;
+}
+function blockRows(aoa, w) {
+  const s = blockStats(w);
+  w.sections.forEach(sec => {
+    if (sec === "rd") {
+      aoa.push(["■ 알디솔루션 정산현황"]);
+      aoa.push(["정산시작일", "정산종료일", "소속 협력사", "대표자", "계좌번호", "은행", "정산구분", "이체금액", "정산현황", "세금계산서 발행", "메모"]);
+      s.rd.forEach(r => aoa.push([r.startDate || "", r.endDate || "", r.company || "", r.rep || "", r.acct || "", r.bank || "",
+        r.settleType || "", num(r.amount), r.settle || "", r.tax || "", r.memo || ""]));
+      aoa.push(["", "", "", "", "", "", "합계", s.rdSum], []);
+    } else if (sec === "bm") {
+      aoa.push(["■ 배민 일선정산"]);
+      aoa.push(BM_FIELDS.map(f => f.label));
+      const fees = feeByCompany(w);
+      const val = (b, k) => k === "diff" ? diffValue(w, b, fees) : b[k];   // 정산차액은 수수료를 뺀 값
+      w.baemin.forEach(b => aoa.push(BM_FIELDS.map(f => f.amount ? (val(b, f.k) === "" || val(b, f.k) == null ? "" : num(val(b, f.k))) : (b[f.k] || ""))));
+      aoa.push(["합계", ...BM_TEXT.slice(1).map(() => ""), ...BM_AMOUNT.map(k => w.baemin.reduce((t, b) => t + num(val(b, k)), 0))], []);
+      if (w.bmFee.rows.length) {
+        aoa.push([`■ 배민 일선정산 수수료 미차감된 협력사 내역 (수수료율 ${w.bmFee.rate}%)`]);
+        aoa.push(["협력사", "총배달료", "수수료", "본 정산액", "최종 정산액"]);
+        w.bmFee.rows.forEach(f => { const fee = feeAmount(w, f); aoa.push([f.company || "", num(f.total), fee, num(f.settle), num(f.settle) - fee]); });
+        aoa.push([]);
+      }
+    } else {
+      aoa.push(["■ 쿠팡 일선정산"]);
+      aoa.push(["결제일 기준", w.coupang.basis || ""]);
+      aoa.push(["협력사", "결제금액"]);
+      w.coupang.rows.forEach(c => aoa.push([c.company || "", num(c.amount)]));
+      aoa.push(["고고플러스에서 차감되어야 할 합계", s.cpSum], []);
+    }
+  });
+}
+function downloadExcel(weeks) {
+  if (!window.XLSX) { alert("엑셀 기능을 불러오지 못했어요. 인터넷 연결을 확인해 주세요."); return; }
+  const wb = XLSX.utils.book_new(), used = new Set();
+  weeks.forEach(w => {
+    let name = `${monthLabel(w.month)} ${weekTitle(w)}`.replace(/[:\\\/?*\[\]]/g, " ").slice(0, 28), n = 2, base = name;
+    while (used.has(name)) name = `${base} (${n++})`;
+    used.add(name);
+    XLSX.utils.book_append_sheet(wb, sheetForWeek(w), name);
+  });
+  const label = weeks.length === 1 ? `${monthLabel(weeks[0].month)}_${weekTitle(weeks[0])}` : `${weeks.length}개주차`;
+  XLSX.writeFile(wb, `알디솔루션정산_${label.replace(/\s/g, "")}.xlsx`);
+}
+
+/* ── 확인용 파일 — 이 화면(템플릿)과 고른 주차 데이터를 html 파일 하나로 묶어서 내려받음 ── */
+const pick = (o, keys) => Object.fromEntries(keys.map(k => [k, o[k] ?? ""]));
+const snapBlock = w => ({
+  month: w.month, title: weekTitle(w), from: w.from || "", start: w.start, end: w.end, sections: w.sections,
+  rd: (rowMap.get(w.id) || []).map(r => pick(r, RD_KEYS)),
+  baemin: w.baemin.map(b => pick(b, BM_FIELDS.map(f => f.k))),
+  coupang: { basis: w.coupang.basis, rows: w.coupang.rows.map(c => pick(c, ["company", "amount"])) },
+  bmFee: { rate: w.bmFee.rate, rows: w.bmFee.rows.map(f => pick(f, ["company", "total", "settle"])) },
+});
+function makeShareFile(weeks) {
+  const tpl = (() => { try { return parent.document.getElementById("page-rd"); } catch (e) { return null; } })();
+  if (!tpl) { alert("확인용 파일을 만들 수 없어요. 통합 정산 관리 화면에서 다시 시도해 주세요."); return; }
+  const snap = {
+    v: 2, sharedAt: new Date().toISOString(),
+    weeks: weeks.map(w => Object.assign(snapBlock(w), { copies: w.copies.map(snapBlock) })),
+  };
+  const json = JSON.stringify(snap).replace(/</g, "\\u003c");   // 데이터 안의 '<' 가 html을 깨지 않게
+  const html = '<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body>'
+    + '<script>window.SHARE_JSON=' + json + ';<\/script>' + tpl.innerHTML + '</body></html>';
+  const first = weeks[0];
+  const label = weeks.length === 1 ? `${monthLabel(first.month)}_${weekTitle(first)}` : `${monthLabel(first.month)}_외${weeks.length - 1}개주차`;
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
+  a.download = `알디솔루션정산_확인용_${label.replace(/\s/g, "")}.html`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  flash("확인용 파일을 내려받았어요. 받은 사람은 파일을 더블클릭하면 바로 볼 수 있어요.");
+}
+
+function openShared() {
+  try {
+    const s = SHARE;
+    if (s.v !== 2 || !Array.isArray(s.weeks)) throw new Error("old");
+    D = { weeks: s.weeks.map((w, i) => Object.assign(fixWeek(Object.assign({}, w, { id: "s" + i, order: i + 1 })), { rd: w.rd || [] })), months: [] };
+    const t = new Date(s.sharedAt);
+    const badge = document.getElementById("roBadge");
+    badge.textContent = "확인용 · 읽기 전용 · " + (isNaN(t) ? "" : `${t.getFullYear()}.${t.getMonth() + 1}.${t.getDate()} ${pad(t.getHours())}:${pad(t.getMinutes())} 기준`);
+    badge.hidden = false;
+    render();
+  } catch (e) {
+    console.warn(e);
+    document.getElementById("wrap").innerHTML = `<div class="msg-box">확인용 파일을 열 수 없어요. 파일을 다시 받아 주세요.</div>`;
+  }
+}
+
+/* =========================================================
+   배민 일선정산 — 캡쳐 글자 인식 (Tesseract.js, 처음 쓸 때 한 번 내려받음)
+   1) 캡쳐를 크게 키우고 흑백으로 또렷하게
+   2) 글자마다 위치(x, y)를 받아서 같은 높이끼리 한 줄로 묶음
+   3) 머리글(협력사명·은행명…) 줄을 찾아 칸 위치를 정하고, 각 글자를 가장 가까운 칸에 넣음
+      (머리글이 없으면 '계좌번호 → 금액들' 순서로 나눔)
+   ========================================================= */
+let ocr = null;            // { weekId, images:[url], rows:[{use, ...칸}], raw, status, progress }
+let ocrTargetWeek = null;
+
+function ocrPick(wid) { ocrTargetWeek = wid; activeWeek = wid; document.getElementById("capInput").click(); }
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = res; s.onerror = () => rej(new Error("글자 인식 기능을 불러오지 못했어요"));
+    document.head.appendChild(s);
+  });
+}
+
+async function prepImage(file) {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error("이미지를 열 수 없어요")); img.src = url; });
+  let scale = img.width < 3400 ? Math.min(3, 3400 / img.width) : 1;
+  scale = Math.min(scale, Math.sqrt(30e6 / (img.width * img.height)));   // 너무 큰 그림은 줄임
+  const c = document.createElement("canvas");
+  c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+  const g = c.getContext("2d");
+  g.imageSmoothingQuality = "high";
+  g.drawImage(img, 0, 0, c.width, c.height);
+  const id = g.getImageData(0, 0, c.width, c.height), p = id.data, n = p.length / 4;
+  const gray = new Uint8ClampedArray(n), hist = new Array(256).fill(0);
+  let total = 0;
+  // 색 글자(초록 '운영', 파랑 '배민' 등)도 진하게 남도록 밝기 대신 가장 어두운 색 성분을 씀
+  for (let i = 0; i < n; i++) { const y = Math.min(p[i * 4], p[i * 4 + 1], p[i * 4 + 2]); gray[i] = y; hist[y]++; total += y; }
+  const invert = total / n < 110;   // 어두운 화면 캡쳐면 반전
+  // 오츠 방식으로 글자/배경 경계값을 찾아 또렷하게 (글자 가장자리는 부드럽게 남김)
+  let sumAll = 0; for (let t = 0; t < 256; t++) sumAll += t * hist[t];
+  let wB = 0, sumB = 0, best = 0, th = 128;
+  for (let t = 0; t < 256; t++) {
+    wB += hist[t]; if (!wB) continue;
+    const wF = n - wB; if (!wF) break;
+    sumB += t * hist[t];
+    const mB = sumB / wB, mF = (sumAll - sumB) / wF, v = wB * wF * (mB - mF) * (mB - mF);
+    if (v > best) { best = v; th = t; }
+  }
+  for (let i = 0; i < n; i++) {
+    let y = gray[i]; if (invert) y = 255 - y;
+    const t = invert ? 255 - th : th;
+    const v = y < t - 40 ? 0 : y > t + 25 ? 255 : Math.round((y - (t - 40)) * 255 / 65);
+    p[i * 4] = p[i * 4 + 1] = p[i * 4 + 2] = v;
+  }
+  g.putImageData(id, 0, 0);
+  return { canvas: c, url };
+}
+
+/* ── 글자 다듬기 ── */
+const BANK_RE = /국민|신한|우리|하나|농협|NH|기업|IBK|SC|제일|카카오|토스|케이뱅크|K뱅크|새마을|우체국|수협|신협|산업|씨티|부산|대구|경남|광주|전북|제주|저축/i;
+function cleanText(s) { return String(s || "").replace(/[|¦｜_]/g, " ").replace(/(?<=[가-힣])\s+(?=[가-힣])/g, "").replace(/\s+/g, " ").trim(); }
+function digitsFix(s) { return String(s).replace(/[Oo○]/g, "0").replace(/[Il|!]/g, "1").replace(/[Ss]/g, "5").replace(/B/g, "8").replace(/Z/g, "2"); }
+function isDate(s) { return /^(20)?\d{2}[-.\/]\d{1,2}[-.\/]\d{1,2}\.?$/.test(String(s).replace(/\s/g, "")); }
+function looksAmount(s) {
+  const t = digitsFix(String(s).replace(/\s/g, "")).replace(/원$/, "");
+  return /^[-–—△▲(]?\d[\d,.]*\)?$/.test(t) && !isAcct(t) && !isDate(t);
+}
+function cleanAmount(s) {
+  let t = digitsFix(String(s).replace(/\s/g, "")).replace(/원/g, "");
+  const neg = /^[-–—△▲(]/.test(t) || /\)$/.test(t);
+  t = t.replace(/[^0-9]/g, "");
+  if (!t) return "";
+  return (neg && +t ? "-" : "") + String(parseInt(t, 10));
+}
+function isAcct(s) {
+  const t = digitsFix(String(s).replace(/\s/g, ""));
+  if (t.includes(",") || isDate(t) || !/^\d[\d-]{7,}\d$/.test(t)) return false;
+  return t.includes("-") || t.replace(/-/g, "").length >= 10;
+}
+function cleanAcct(s) { return digitsFix(String(s).replace(/\s/g, "")).replace(/[^0-9-]/g, ""); }
+/* 은행 이름은 실제 은행 목록 중 가장 비슷한 것으로 맞춤 (예: 국민은현 → 국민은행) */
+const BANKS = ["국민은행", "신한은행", "우리은행", "하나은행", "농협은행", "기업은행", "SC제일은행", "카카오뱅크", "토스뱅크", "케이뱅크",
+  "새마을금고", "우체국", "수협은행", "신협", "산업은행", "씨티은행", "부산은행", "대구은행", "경남은행", "광주은행", "전북은행", "제주은행", "iM뱅크", "저축은행"];
+function fixBank(s) {
+  const t = String(s || "").replace(/[^가-힣A-Za-z]/g, "");
+  if (!t) return "";
+  let best = "", score = 0;
+  BANKS.forEach(b => {
+    const head = b.replace(/은행$/, "");
+    let n = 0; [...head].forEach(ch => { if (t.includes(ch)) n++; });
+    const sc = n / head.length + (t.includes(head) ? 1 : 0);
+    if (sc > score) { score = sc; best = b; }
+  });
+  return score >= 0.5 ? best : t;
+}
+function emptyBm() { const r = {}; BM_FIELDS.forEach(f => r[f.k] = ""); return r; }
+function finishRec(cellsByKey) {
+  const r = emptyBm();
+  Object.entries(cellsByKey).forEach(([k, parts]) => {
+    const t = parts.join(" ");
+    r[k] = BM_AMOUNT.includes(k) ? cleanAmount(t) : k === "acct" ? cleanAcct(t) : k === "bank" ? fixBank(t)
+      : ["opState", "channel"].includes(k) ? cleanText(t).replace(/\s/g, "") : cleanText(t);
+  });
+  return r;
+}
+
+/* Tesseract 결과에서 글자 조각(단어)과 위치 꺼내기 */
+function getWords(data) {
+  let ws = Array.isArray(data.words) ? data.words : [];
+  if (!ws.length) (data.blocks || []).forEach(b => (b.paragraphs || []).forEach(p => (p.lines || []).forEach(l => (l.words || []).forEach(w => ws.push(w)))));
+  return ws.map(w => ({ t: String(w.text || "").trim(), conf: w.confidence ?? 0, x0: w.bbox.x0, x1: w.bbox.x1, y0: w.bbox.y0, y1: w.bbox.y1 }))
+    .filter(w => w.t && /[0-9A-Za-z가-힣]/.test(w.t))
+    .map(w => Object.assign(w, { cx: (w.x0 + w.x1) / 2, cy: (w.y0 + w.y1) / 2, h: w.y1 - w.y0 }));
+}
+/* 같은 높이의 단어끼리 한 줄, 줄 안에서 간격이 넓으면 다른 칸(cell) */
+function groupLines(words, mh) {
+  const sorted = [...words].sort((a, b) => a.cy - b.cy);
+  const lines = [];
+  sorted.forEach(w => {
+    const l = lines[lines.length - 1];
+    if (l && Math.abs(w.cy - l.cy) < mh * 0.6) { l.words.push(w); l.cy = l.words.reduce((s, x) => s + x.cy, 0) / l.words.length; }
+    else lines.push({ cy: w.cy, words: [w] });
+  });
+  lines.forEach(l => {
+    l.words.sort((a, b) => a.x0 - b.x0);
+    l.cells = [];
+    l.words.forEach(w => {
+      const c = l.cells[l.cells.length - 1];
+      const gap = c ? w.x0 - c.x1 : Infinity;
+      const bothNum = c && looksAmount(c.words[c.words.length - 1].t) && looksAmount(w.t);
+      if (c && gap < mh * 0.9 && !bothNum) { c.words.push(w); c.x1 = Math.max(c.x1, w.x1); c.t += " " + w.t; c.conf = Math.min(c.conf, w.conf); }
+      else l.cells.push({ x0: w.x0, x1: w.x1, t: w.t, conf: w.conf, words: [w] });
+    });
+    l.cells.forEach(c => c.cx = (c.x0 + c.x1) / 2);
+  });
+  return lines;
+}
+function matchField(t) {
+  t = String(t).replace(/\s/g, "");
+  if (!t) return null;
+  for (const k of BM_MATCH_ORDER) if (BM_FIELDS.find(f => f.k === k).re.test(t)) return k;
+  return null;
+}
+/* 두 줄로 된 머리글(예: '선정산 / 상환액')은 위아래가 겹치는 칸끼리 붙임 */
+function mergeHeaderCells(a, b) {
+  const out = a.map(c => Object.assign({}, c, { words: [...c.words] }));
+  b.forEach(c => {
+    const hit = out.find(o => Math.min(o.x1, c.x1) - Math.max(o.x0, c.x0) > 0);
+    if (hit) { hit.t += c.t; hit.words.push(...c.words); hit.x0 = Math.min(hit.x0, c.x0); hit.x1 = Math.max(hit.x1, c.x1); hit.cx = (hit.x0 + hit.x1) / 2; }
+    else out.push(Object.assign({}, c));
+  });
+  return out;
+}
+function findHeader(lines, mh) {
+  let best = null;
+  for (let i = 0; i < Math.min(lines.length, 15); i++) {
+    for (const span of [1, 2]) {
+      const nx = lines[i + 1];
+      if (span === 2 && (!nx || nx.cy - lines[i].cy > mh * 2.4)) continue;
+      const cells = span === 1 ? lines[i].cells : mergeHeaderCells(lines[i].cells, nx.cells);
+      const found = {}, skips = [];
+      cells.forEach(c => {
+        if (BM_SKIP_RE.test(c.t.replace(/\s/g, ""))) { skips.push(c.cx); return; }
+        const k = matchField(c.t);
+        if (k && found[k] == null) found[k] = c.cx;
+        if (c.words.length > 1) c.words.forEach(w => { const k2 = matchField(w.t); if (k2 && found[k2] == null) found[k2] = w.cx; });
+      });
+      const n = Object.keys(found).length;
+      if (n >= 3 && (!best || n > best.n)) best = { n, last: i + span - 1, found, skips };
+    }
+  }
+  if (!best) return null;
+  const anchors = makeAnchors(best.found);
+  return anchors ? { last: best.last, anchors: anchors.concat(best.skips.map(cx => ({ k: "_skip", cx }))) } : null;
+}
+/* 못 찾은 머리글 칸 위치는 찾은 칸들 사이를 기본 너비 비율로 채움 */
+function makeAnchors(found) {
+  const C = []; let acc = 0;
+  BM_FIELDS.forEach(f => { C.push(acc + f.w / 2); acc += f.w; });
+  const X = i => found[BM_FIELDS[i].k];
+  const mono = [];
+  BM_FIELDS.forEach((f, i) => { if (found[f.k] != null && (!mono.length || X(i) > X(mono[mono.length - 1]))) mono.push(i); });
+  if (mono.length < 2) return null;
+  return BM_FIELDS.map((f, i) => {
+    if (mono.includes(i)) return { k: f.k, cx: X(i) };
+    let a = null, b = null;
+    mono.forEach(j => { if (j < i) a = j; if (j > i && b === null) b = j; });
+    if (a === null) { a = mono[0]; b = mono[1]; }
+    else if (b === null) { b = a; a = mono[mono.length - 2]; }
+    return { k: f.k, cx: X(a) + (X(b) - X(a)) * (C[i] - C[a]) / (C[b] - C[a]) };
+  });
+}
+function byAnchors(cells, anchors) {
+  const parts = {}, conf = {}, box = {};
+  cells.forEach(c => {
+    let bestA = anchors[0], d = Infinity;
+    anchors.forEach(a => { const dd = Math.abs(a.cx - c.cx); if (dd < d) { d = dd; bestA = a; } });
+    if (bestA.k === "_skip") return;
+    (parts[bestA.k] = parts[bestA.k] || []).push(c.t);
+    conf[bestA.k] = Math.min(conf[bestA.k] ?? 100, c.conf);
+    box[bestA.k] = box[bestA.k] ? [Math.min(box[bestA.k][0], c.x0), Math.max(box[bestA.k][1], c.x1)] : [c.x0, c.x1];
+  });
+  return Object.assign(finishRec(parts), { _conf: conf, _box: box });
+}
+function byOrder(cells) {
+  const parts = {}, amts = [], texts = [];
+  cells.forEach(c => {
+    if (BM_SKIP_RE.test(c.t.replace(/\s/g, ""))) return;   // 저장 · 상환 버튼
+    if (!parts.acct && isAcct(c.t)) parts.acct = [c.t];
+    else if (looksAmount(c.t)) amts.push(c.t);
+    else if (!parts.bank && BANK_RE.test(c.t) && c.t.length <= 10) parts.bank = [c.t];
+    else texts.push(c.t);
+  });
+  // 글자 칸 순서: (운영여부 · 주문채널) · 협력사명 · 계좌주 / 숫자 칸 순서: 운행건수 · 라이더금액 · … · 정산차액
+  const tk = texts.length >= 4 ? ["opState", "channel", "company", "holder"] : ["company", "holder"];
+  tk.forEach((k, i) => { if (texts[i]) parts[k] = [i === tk.length - 1 ? texts.slice(i).join(" ") : texts[i]]; });
+  BM_AMOUNT.forEach((k, i) => { if (amts[i] != null) parts[k] = [amts[i]]; });
+  return finishRec(parts);
+}
+function parseBaemin(data) {
+  const words = getWords(data);
+  if (!words.length) return { rows: [], header: null, mh: 20 };
+  const hs = words.map(w => w.h).sort((a, b) => a - b), mh = hs[hs.length >> 1] || 20;
+  const lines = groupLines(words, mh);
+  const header = findHeader(lines, mh);
+  const out = [];
+  let prev = null;
+  lines.forEach((l, li) => {
+    if (header && li <= header.last) return;
+    const rec = header ? byAnchors(l.cells, header.anchors) : byOrder(l.cells);
+    const amounts = BM_AMOUNT.filter(k => rec[k] !== "").length;
+    if (amounts < 2 && !rec.acct) {   // 금액이 없는 줄 = 위 줄의 긴 이름이 줄바꿈된 것
+      if (prev && l.cy - prev.cy < mh * 2.2) BM_TEXT.forEach(k => { if (rec[k]) prev.row[k] = (prev.row[k] + " " + rec[k]).trim(); });
+      return;
+    }
+    const isTotal = /합계|총계|소계|total/i.test(l.cells.map(c => c.t).join("").replace(/\s/g, ""));
+    const row = Object.assign({ use: !isTotal, _cy: l.cy }, rec);
+    out.push(row); prev = { cy: l.cy, row };
+  });
+  return { rows: out, header, mh };
+}
+
+/* 2차 확인: 칸 하나씩 잘라서 다시 읽음
+   - 비어 있는 금액 칸 → 숫자만 읽기 (작은 '0' 같은 것)
+   - 이름 칸(운영여부·주문채널·협력사명·계좌주) → 한 줄로 다시 읽어서 더 확실하면 바꿈 */
+async function refineRows(worker, canvas, parsed) {
+  const { rows, header, mh } = parsed;
+  if (!header || !rows.length) return;
+  const xs = header.anchors.slice().sort((a, b) => a.cx - b.cx);
+  const range = k => {
+    const i = xs.findIndex(a => a.k === k); if (i < 0) return null;
+    const a = xs[i];
+    return [i > 0 ? (xs[i - 1].cx + a.cx) / 2 : a.cx - mh * 4, i < xs.length - 1 ? (a.cx + xs[i + 1].cx) / 2 : a.cx + mh * 4];
+  };
+  const crop = (rg, cy) => {
+    const x0 = Math.max(0, rg[0]), x1 = Math.min(canvas.width, rg[1]), y0 = Math.max(0, cy - mh * 0.9), h = Math.min(mh * 1.8, canvas.height - y0), pad = 14;
+    const c = document.createElement("canvas");
+    c.width = Math.round(x1 - x0) + pad * 2; c.height = Math.round(h) + pad * 2;
+    const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(canvas, x0, y0, x1 - x0, h, pad, pad, x1 - x0, h);
+    return c;
+  };
+  await worker.setParameters({ tessedit_pageseg_mode: "7", tessedit_char_whitelist: "0123456789,-" });
+  for (const r of rows) for (const k of BM_AMOUNT) {
+    if (!ocr) return;
+    const rg = range(k); if (r[k] !== "" || !rg) continue;
+    const { data } = await worker.recognize(crop(rg, r._cy));
+    const v = cleanAmount(data.text);
+    if (v !== "" && data.confidence >= 50) r[k] = v;
+  }
+  await worker.setParameters({ tessedit_char_whitelist: "" });
+  for (const r of rows) for (const k of ["opState", "channel", "company", "holder"]) {
+    if (!ocr) return;
+    const b = (r._box || {})[k];   // 글자가 실제로 있는 자리 (조금 넉넉하게)
+    const rg = b ? [b[0] - mh * 0.7, b[1] + mh * 0.7] : range(k), before = (r._conf || {})[k] ?? 0;
+    if (!rg || before >= 88) continue;
+    const { data } = await worker.recognize(crop(rg, r._cy));
+    const v = finishRec({ [k]: [data.text.replace(/\n/g, " ")] })[k];
+    if (v && data.confidence >= 55 && data.confidence > before + 5) r[k] = v;
+  }
+  await worker.setParameters({ tessedit_pageseg_mode: "11" });
+}
+
+function targetWeekForPaste() {
+  const w = W(activeWeek);
+  if (w && w.month === UI.month) return w.id;
+  const list = weeksOf(UI.month);
+  return list.length ? list[0].id : newWeek(UI.month, undefined, "", "").id;
+}
+async function ocrFiles(files, wid) {
+  files = (files || []).filter(f => f && f.type.startsWith("image/"));
+  if (READONLY || !files.length) return;
+  if (!ocr) ocr = { weekId: W(wid) ? wid : targetWeekForPaste(), images: [], rows: [], raw: "", status: "", progress: 0 };
+  document.getElementById("ocrModal").hidden = false;
+  try {
+    ocr.status = "글자 인식 준비 중… (처음 한 번은 조금 걸려요)"; renderOcr();
+    if (!window.Tesseract) await loadScript(TESSERACT_JS);
+    const worker = await Tesseract.createWorker("kor+eng", 1, {
+      logger: m => { if (ocr && m.status === "recognizing text") { ocr.progress = m.progress; renderOcrProgress(); } },
+    });
+    await worker.setParameters({ tessedit_pageseg_mode: "11", preserve_interword_spaces: "1" });
+    for (let i = 0; i < files.length; i++) {
+      if (!ocr) break;   // 도중에 닫음
+      ocr.status = `캡쳐 ${i + 1} / ${files.length} 읽는 중…`; ocr.progress = 0; renderOcr();
+      const { canvas, url } = await prepImage(files[i]);
+      ocr.images.push(url);
+      const { data } = await worker.recognize(canvas, {}, { text: true, blocks: true });
+      if (!ocr) break;
+      ocr.raw += (ocr.raw ? "\n\n" : "") + data.text;
+      const parsed = parseBaemin(data);
+      ocr.status = `캡쳐 ${i + 1} / ${files.length} 칸별로 다시 확인하는 중…`; renderOcr();
+      await refineRows(worker, canvas, parsed);
+      if (!ocr) break;
+      ocr.rows.push(...parsed.rows);
+    }
+    await worker.terminate();
+    if (ocr) { ocr.status = ""; renderOcr(); }
+  } catch (e) {
+    console.warn(e);
+    if (ocr) { ocr.status = "⚠ " + (e.message || "글자를 읽지 못했어요") + " — 다시 시도하거나 직접 입력해 주세요."; renderOcr(); }
+  }
+}
+
+function renderOcrProgress() {
+  const bar = document.querySelector("#ocrBody .bar i");
+  if (bar && ocr) bar.style.width = Math.round(ocr.progress * 100) + "%";
+}
+function renderOcr() {
+  if (!ocr) return;
+  const w = W(ocr.weekId);
+  document.getElementById("ocrTitle").textContent = `배민 일선정산 · 캡쳐 인식 결과 → ${w ? `${monthLabel(w.month)} ${weekTitle(w)}` : ""}에 추가`;
+  const thumbs = ocr.images.map(u => `<img src="${u}" alt="캡쳐">`).join("");
+  let main;
+  if (ocr.status && !ocr.status.startsWith("⚠")) {
+    main = `<div class="ocr-progress">${esc(ocr.status)}<div class="bar"><i></i></div></div>`;
+  } else {
+    const rows = ocr.rows.map((r, i) => `<tr class="${r.use ? "" : "off"}">
+        <td style="text-align:center"><input type="checkbox" ${r.use ? "checked" : ""} onchange="ocr.rows[${i}].use=this.checked;this.closest('tr').className=this.checked?'':'off';ocrFootCount()"></td>
+        ${BM_FIELDS.map(f => `<td><input type="text" class="${f.amount ? "n" : ""}" value="${f.amount ? fmt(r[f.k]) : esc(r[f.k])}" oninput="ocr.rows[${i}].${f.k}=this.value"></td>`).join("")}
+      </tr>`).join("");
+    main = (ocr.status ? `<p style="color:var(--cp-d);margin-bottom:10px">${esc(ocr.status)}</p>` : "")
+      + `<p style="color:var(--muted);margin-bottom:8px">틀린 글자는 고치고, 넣지 않을 줄은 체크를 빼 주세요. (합계 줄은 자동으로 빠져 있어요)</p>`
+      + `<div style="overflow-x:auto"><table class="ocr-table"><colgroup><col style="width:30px">${BM_FIELDS.map(f => `<col style="width:${f.w}px">`).join("")}</colgroup>`
+      + `<thead><tr><th></th>${BM_FIELDS.map(f => `<th>${f.label}</th>`).join("")}</tr></thead>`
+      + `<tbody>${rows || `<tr><td colspan="${BM_FIELDS.length + 1}" class="empty">표를 찾지 못했어요. 머리글(협력사명·은행명…)까지 함께 캡쳐해서 다시 올리거나, 아래 '빈 행 추가'로 직접 넣어 주세요.</td></tr>`}</tbody></table></div>`
+      + `<button class="sec-btn" style="margin-top:8px" onclick="ocr.rows.push(Object.assign({use:true},emptyBm()));renderOcr()"><i class="ti ti-plus"></i> 빈 행 추가</button>`
+      + `<button class="sec-btn" style="margin-top:8px;margin-left:4px" onclick="document.getElementById('capInput').click()"><i class="ti ti-photo-plus"></i> 캡쳐 더 올리기</button>`
+      + (ocr.raw ? `<details class="raw"><summary>인식된 원문 보기</summary><pre>${esc(ocr.raw)}</pre></details>` : "");
+  }
+  document.getElementById("ocrBody").innerHTML = `<div class="ocr-thumbs">${thumbs}</div>${main}`;
+  renderOcrProgress();
+  document.getElementById("ocrFoot").innerHTML = `<button onclick="closeOcr()">취소</button><button class="primary" id="ocrOk" onclick="confirmOcr()"></button>`;
+  ocrFootCount();
+}
+function ocrFootCount() {
+  const b = document.getElementById("ocrOk");
+  if (!b || !ocr) return;
+  const n = ocr.rows.filter(r => r.use).length;
+  b.textContent = `선택한 ${n}건 추가`;
+  b.disabled = !n || (!!ocr.status && !ocr.status.startsWith("⚠"));
+}
+function confirmOcr() {
+  if (!ocr) return;
+  const w = W(ocr.weekId); if (!w) { closeOcr(); return; }
+  ocr.rows.filter(r => r.use).forEach(r => {
+    const row = { id: uid() };
+    BM_FIELDS.forEach(f => row[f.k] = f.amount ? cleanAmount(r[f.k]) : String(r[f.k] || "").trim());
+    w.baemin.push(row);
+  });
+  const host = w.parent ? W(w.parent) : w;
+  UI.month = host.month; openKey(`w:${host.id}`); openKey(`c:${w.id}`); openKey(`s:${w.id}:bm`);
+  closeOcr(); save(); render();
+}
+function closeOcr() {
+  if (ocr) ocr.images.forEach(u => URL.revokeObjectURL(u));
+  ocr = null;
+  document.getElementById("ocrModal").hidden = true;
+}
+
+/* ── 쿠팡: 엑셀에서 복사한 줄(칸은 탭으로 구분) → 행 추가 ── */
+let activeSec = null;   // 마지막으로 누른 항목 { wid, sec }
+document.addEventListener("mousedown", e => {
+  const sec = e.target.closest && e.target.closest(".sec");
+  activeSec = sec ? { wid: sec.dataset.wid, sec: e.target.closest(".fee-box") ? "fee" : sec.dataset.sec } : null;
+});
+function looksMoney(c) { const t = String(c).replace(/\s/g, ""); return /\d/.test(t) && /^[-–(]?[\d,]+(\.\d+)?\)?원?$/.test(t); }
+function pasteCoupang(wid, text) {
+  const w = W(wid); if (!w) return;
+  const add = [];
+  text.replace(/\r/g, "").split("\n").forEach(line => {
+    const cells = line.split("\t").map(c => c.trim()).filter(Boolean);
+    if (!cells.length) return;
+    const nums = cells.filter(looksMoney), texts = cells.filter(c => !looksMoney(c));
+    if (!nums.length && texts.some(c => /협력사|결제|금액|업체/.test(c))) return;   // 머리글 줄은 건너뜀
+    add.push({ id: uid(), company: texts.join(" "), amount: nums.length ? cleanAmount(nums[nums.length - 1]) : "" });
+  });
+  if (!add.length) { alert("붙여넣은 내용에서 행을 찾지 못했어요. 엑셀에서 협력사·결제금액 칸을 함께 복사해 주세요."); return; }
+  w.coupang.rows.push(...add);
+  openKey(`w:${wid}`); openKey(`s:${wid}:cp`);
+  save(); render();
+  flash(`쿠팡 일선정산에 ${add.length}건을 넣었어요`);
+}
+/* ── 배민: 정산 화면 표를 복사해서 붙여넣기 ──
+   한 협력사 = 여러 줄 (계좌번호와 금액이 있는 줄에서 시작해서, 다음 그런 줄 전까지)
+   계좌번호를 기준으로: 앞 4칸 = 운영여부·주문채널·협력사명·은행명, 뒤 = 계좌주 → 금액 8칸
+   → 정산금액(없으면 '비용입력') → 저장/마감 버튼 → 정산차액. No·날짜·정산타입·버튼·송금 상태는 버림 */
+function parseBaeminText(text) {
+  const recs = [];
+  let cur = null;
+  text.replace(/\r/g, "").split("\n").forEach(line => {
+    const cells = line.split("\t").map(c => c.trim()).filter(Boolean);
+    if (!cells.length) return;
+    const start = cells.some(c => isAcct(c)) && cells.filter(looksMoney).length >= 6;
+    if (start) { cur = [...cells]; recs.push(cur); }
+    else if (cur) cur.push(...cells);
+  });
+  return recs.map(tk => {
+    const i = tk.findIndex(c => isAcct(c)), at = j => (j >= 0 && j < tk.length ? tk[j] : "");
+    const r = emptyBm();
+    r.opState = at(i - 4); r.channel = at(i - 3); r.company = at(i - 2); r.bank = at(i - 1);
+    r.acct = cleanAcct(at(i)); r.holder = at(i + 1);
+    ["rides", "rider", "partner", "planned", "deduct", "final", "prepaid", "unpaid"].forEach((k, n) => { r[k] = looksMoney(at(i + 2 + n)) ? cleanAmount(at(i + 2 + n)) : ""; });
+    let j = i + 10;
+    if (looksMoney(at(j))) r.settle = cleanAmount(at(j));   // '비용입력'이면 빈칸
+    j++;
+    while (j < tk.length && !looksMoney(tk[j])) j++;          // 저장 / 마감 버튼 건너뜀
+    if (j < tk.length) r.diff = cleanAmount(tk[j]);
+    return r;
+  });
+}
+function pasteBaemin(wid, text) {
+  const w = W(wid); if (!w) return;
+  const rows = parseBaeminText(text);
+  if (!rows.length) { alert("붙여넣은 내용에서 배민 정산 줄을 찾지 못했어요.\n배민 정산 화면의 표를 계좌번호·금액 칸까지 함께 선택해서 복사해 주세요."); return; }
+  rows.forEach(r => w.baemin.push(Object.assign({ id: uid() }, r)));
+  openKey(`w:${w.parent || wid}`); openKey(`c:${wid}`); openKey(`s:${wid}:bm`);
+  save(); render();
+  flash(`배민 일선정산에 ${rows.length}건을 넣었어요`);
+}
+async function pasteButton(wid, sec) {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (sec === "bm") pasteBaemin(wid, text); else if (sec === "fee") pasteFee(wid, text); else pasteCoupang(wid, text);
+  } catch (e) { activeSec = { wid, sec }; alert("브라우저가 붙여넣기를 막았어요. 이 항목을 한 번 누른 뒤 키보드로 Ctrl+V 해 주세요."); }
+}
+function flash(msg) {
+  let el = document.getElementById("flash");
+  if (!el) { el = document.createElement("div"); el.id = "flash"; document.body.appendChild(el); }
+  el.textContent = msg; el.className = "show";
+  clearTimeout(flash.t); flash.t = setTimeout(() => el.className = "", 2200);
+}
+
+/* Ctrl+V : 표 글자(여러 칸·여러 줄) → 누른 항목(배민/쿠팡)에 행 추가 / 캡쳐 이미지 → 배민 글자 인식
+   (엑셀에서 복사하면 그림도 함께 들어오므로 글자를 먼저 봄) */
+document.addEventListener("paste", e => {
+  if (READONLY || !e.clipboardData || !document.getElementById("ocrModal").hidden) return;
+  const text = e.clipboardData.getData("text/plain") || "";
+  const secEl = e.target.closest && e.target.closest('.sec[data-sec="bm"], .sec[data-sec="cp"]');
+  const target = secEl ? { wid: secEl.dataset.wid, sec: e.target.closest(".fee-box") ? "fee" : secEl.dataset.sec } : (activeSec && activeSec.sec !== "rd" ? activeSec : null);
+  const multi = /[\t\n]/.test(text.trim());
+  if (target && multi) {
+    e.preventDefault();
+    if (target.sec === "bm") pasteBaemin(target.wid, text); else if (target.sec === "fee") pasteFee(target.wid, text); else pasteCoupang(target.wid, text);
+    return;
+  }
+  const items = [...(e.clipboardData.items || [])];
+  const files = items.filter(it => it.type.startsWith("image/")).map(it => it.getAsFile());
+  if (files.length && !(e.target.tagName === "INPUT" && text)) {
+    e.preventDefault();
+    ocrFiles(files, ocr ? ocr.weekId : (target && target.sec === "bm" ? target.wid : targetWeekForPaste()));
+  }
+});
+
+/* ── 시작 ── */
+if (READONLY) openShared(); else loadCloud();
 </script>
 </body>
 </html>
