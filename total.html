@@ -6225,9 +6225,12 @@ const SB_ID = "card_main";
 const LS_DATA = "card_data";
 const LIST_FIELDS = {   // 목록별 칸 [키, 머리글, 너비]
   kb: [["upper", "상위운영사", 140], ["bizNo", "사업자번호", 135], ["name", "사업자명", 200], ["bizType", "사업자구분", 115],
-       ["status", "카드발급상태", 125], ["card", "카드번호", 205]],
-  personal: [["name", "협력사명", 200], ["bizNo", "사업자번호", 140], ["rep", "대표자", 110], ["card", "카드번호", 200]],
+       ["status", "카드발급상태", 125], ["cardCo", "카드사", 95], ["card", "카드번호", 205]],
+  personal: [["name", "협력사명", 200], ["bizNo", "사업자번호", 140], ["rep", "대표자", 110], ["cardCo", "카드사", 95], ["card", "카드번호", 200]],
 };
+const KB_CO = "KB국민";   // 국민카드 목록의 기본 카드사
+/* 카드사 이름 한 칸 (예: 신한, 신한카드, KB국민카드, NH농협, 하나카드 …) */
+const CARD_CO_RE = /^(KB|kb)?\s*(국민|신한|삼성|현대|롯데|하나|우리|비씨|BC|NH|농협|씨티|IBK|기업|카카오뱅크|카카오|토스|케이뱅크|수협|광주|전북|제주|BNK|부산|경남|DGB|대구|우체국|새마을|신협|SC제일)\s*(은행)?\s*(카드)?$/i;
 function F() { return LIST_FIELDS[cur]; }
 
 const SHARE = window.SHARE_JSON || null;   // 공유 파일로 열렸으면 파일 안의 데이터
@@ -6257,7 +6260,9 @@ function normalizeList(x, key, title) {
   return {
     title: !x.title || (key === "personal" && x.title === "개인카드") ? title : x.title,
     rows: (Array.isArray(x.rows) ? x.rows : []).map(r => {   // 그 목록의 칸만 남김 (가상계좌 · CVC 는 버림)
-      const o = { id: r.id || uid() }; LIST_FIELDS[key].forEach(([k]) => o[k] = r[k] ?? ""); return o;
+      const o = { id: r.id || uid() }; LIST_FIELDS[key].forEach(([k]) => o[k] = r[k] ?? "");
+      if (key === "kb" && !o.cardCo && o.card) o.cardCo = KB_CO;
+      return o;
     }),
   };
 }
@@ -6405,7 +6410,7 @@ function renderRows() {
    ========================================================= */
 function R(id) { return L().rows.find(r => r.id === id); }
 function setRow(id, k, v) { const r = R(id); if (!r) return; r[k] = k === "card" ? digits(v) : v; save(); if (k === "card") renderRows(); }
-function addRow() { const r = { id: uid() }; F().forEach(([k]) => r[k] = ""); L().rows.push(r); save(); renderRows(); }
+function addRow() { const r = { id: uid() }; F().forEach(([k]) => r[k] = ""); if (cur === "kb") r.cardCo = KB_CO; L().rows.push(r); save(); renderRows(); }
 function delRow(id) {
   const r = R(id); if (!r) return;
   if (!confirm(`'${r.name || "이 행"}'을(를) 삭제할까요?`)) return;
@@ -6472,11 +6477,14 @@ function parsePersonal(text) {
       rest = line.replace(m[0], " ");
     }
     const toks = rest.split(rest.includes("\t") ? "\t" : /\s+/).map(x => x.trim()).filter(x => x && !/^\d{1,3}$/.test(x));   // 순번 같은 작은 숫자는 버림
+    let cardCo = "";
+    const coi = toks.findIndex(x => CARD_CO_RE.test(x));
+    if (coi >= 0) { cardCo = toks[coi]; toks.splice(coi, 1); }
     const bi = toks.findIndex(x => /^\d{3}-?\d{2}-?\d{5}$/.test(x));   // 사업자번호 10자리
     let name, rep;
     if (bi >= 0) { name = toks.slice(0, bi).join(" "); rep = toks.slice(bi + 1).join(" "); }
     else { name = toks[0] || ""; rep = toks.slice(1).join(" "); }
-    out.push({ id: uid(), name, bizNo: bi >= 0 ? fmtBizNo(toks[bi]) : "", rep, card });
+    out.push({ id: uid(), name, bizNo: bi >= 0 ? fmtBizNo(toks[bi]) : "", rep, cardCo, card });
   });
   return out;
 }
@@ -6488,13 +6496,14 @@ function parseCards(text) {
     const ci = cells.findIndex(c => /^\d{15,16}$/.test(c.replace(/[\s-]/g, "")));
     if (ci < 0) return;   // 카드번호가 없는 줄(제목 · 머리글)은 건너뜀
     const before = cells.slice(0, ci).filter(c => c && !/^\d{1,3}$/.test(c));   // 순번 같은 작은 숫자는 버림
-    const r = { id: uid(), upper: "", bizNo: "", name: "", bizType: "", status: "", card: digits(cells[ci]) };
+    const r = { id: uid(), upper: "", bizNo: "", name: "", bizType: "", status: "", cardCo: KB_CO, card: digits(cells[ci]) };
     // 칸 위치로 구분 (상위운영사와 사업자명이 같은 글자여도 안전)
     const used = new Set(), take = (re) => { const i = before.findIndex((c, n) => !used.has(n) && re.test(c)); if (i >= 0) used.add(i); return i; };
     const bi = take(/^\d{3}-?\d{2}-?\d{5}$/);                              // 사업자번호 10자리
     if (bi >= 0) r.bizNo = fmtBizNo(before[bi]);
     const ti = take(/사업자/); if (ti >= 0) r.bizType = before[ti];          // 개인사업자 · 법인사업자
     const si = take(/발급|완료|대기|해지|발송|신청|반려|취소/); if (si >= 0) r.status = before[si];
+    const coi = take(CARD_CO_RE); if (coi >= 0) r.cardCo = before[coi];
     before.forEach((c, n) => { if (/^(협력사|가맹점|회원사)$/.test(c)) used.add(n); });   // 회원사구분 값은 버림
     const left = before.map((c, n) => ({ c, n })).filter(x => !used.has(x.n));
     if (bi >= 0) { r.upper = left.filter(x => x.n < bi).map(x => x.c).join(" "); r.name = (left.find(x => x.n > bi) || {}).c || ""; }
