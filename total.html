@@ -7080,7 +7080,35 @@ if (READONLY) openShared(); else loadCloud();
   /* 문서 묶음 (일반 페이지) */
   .docsec{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px 64px 22px 40px}
   /* 문서 탭 읽기 화면 (편집을 누르기 전) */
-  .docsec.read{padding:26px 44px 30px}
+  .docsec.read{padding:22px 40px 30px}
+  .doclay{display:flex;gap:14px;align-items:flex-start}
+  .docstack{display:flex;flex-direction:column;gap:14px;border-radius:14px}
+  .docstack .dhead{position:relative}
+  .dgrip{position:absolute;left:-28px;top:50%;transform:translateY(-50%);cursor:grab;color:var(--faint);opacity:0;font-size:16px;padding:3px 2px;border-radius:5px}
+  .docsec:hover .dgrip{opacity:1}
+  .dgrip:hover{background:var(--bg);color:var(--ink)}
+  .docsec.drop-before{box-shadow:0 -3px 0 0 var(--main)!important}
+  .dadd2{width:100%;margin-top:14px;border:1px dashed var(--line2);border-radius:14px;background:transparent;color:var(--muted);font:inherit;font-size:14px;cursor:pointer;padding:14px;display:flex;gap:6px;align-items:center;justify-content:center}
+  .dadd2:hover{border-color:var(--main);color:var(--ink);background:#fff}
+  .dside{flex:0 0 200px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px;position:sticky;top:58px;max-height:calc(100vh - 80px);overflow-y:auto}
+  .dside-h{font-size:11px;color:var(--faint);padding:4px 9px 6px;font-weight:600}
+  .ditem{display:flex;gap:7px;align-items:center;padding:7px 9px;border-radius:8px;cursor:pointer;font-size:13.5px;color:var(--ink);background:#fff}
+  .ditem:hover{background:var(--bg)}
+  .ditem.on{background:var(--main-l);font-weight:700}
+  .ditem .ic{flex:none;width:18px;text-align:center;color:var(--muted);font-weight:400}
+  .ditem .tt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dadd{width:100%;margin-top:4px;border:none;background:transparent;color:var(--muted);text-align:left;padding:7px 9px;border-radius:8px;cursor:pointer;font:inherit;font-size:13px;display:flex;gap:5px;align-items:center}
+  .dadd:hover{background:var(--bg);color:var(--ink)}
+  .dmain{flex:1;min-width:0}
+  .dhead{display:flex;align-items:center;gap:8px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .dtitle{font-size:22px;font-weight:800;flex:1;min-width:0;display:flex;gap:8px;align-items:center}
+  .dtitle-in{font-size:22px;font-weight:800;border:none;outline:none;flex:1;min-width:120px;font-family:inherit;color:var(--ink);background:transparent}
+  .dhead .ed-icon{width:40px;height:40px;font-size:22px}
+  .dat{font-size:11.5px;color:var(--faint);white-space:nowrap}
+  .ttab .tx{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;color:var(--faint);opacity:0;margin-left:-2px;font-size:12px}
+  .ttab:hover .tx{opacity:1}
+  .ttab .tx:hover{background:#FBE3E1;color:var(--red)}
+  .ttab .tx i{color:inherit}
   .docsec.editing{box-shadow:0 0 0 2px var(--main-l);border-color:var(--main)}
   .r-h{font-size:19px;font-weight:800;margin:22px 0 8px;line-height:1.45}
   .r-h:first-child{margin-top:0}
@@ -7210,7 +7238,7 @@ if (READONLY) openShared(); else loadCloud();
   #flash{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:#2B2A28;color:#fff;font-size:13px;padding:9px 18px;border-radius:999px;opacity:0;transition:.2s;pointer-events:none;z-index:99;white-space:nowrap}
   #flash.show{opacity:1;transform:translateX(-50%)}
   @media (max-width:700px){
-    .topbar{padding:0 1rem}.wrap{padding:1rem}.gnav{padding:6px 1rem 0}.docsec{padding:14px 16px}.search{width:auto;flex:1;margin-left:6px}
+    .topbar{padding:0 1rem}.wrap{padding:1rem}.gnav{padding:6px 1rem 0}.docsec,.docsec.read{padding:14px 18px}.doclay{flex-direction:column}.dside{position:static;width:100%;flex:none;max-height:none}.ttab .tx{opacity:1}.search{width:auto;flex:1;margin-left:6px}
     .ed{padding:16px 18px 22px}.ed-top{margin:0 0 12px;flex-wrap:wrap}.blk-tools{opacity:1;right:-6px}.bgrip{opacity:1;left:-22px}
   }
 </style>
@@ -7229,7 +7257,7 @@ if (READONLY) openShared(); else loadCloud();
 <div class="gnav" id="gnav"></div>
 <div class="wrap">
   <p class="sub">위의 <b>탭</b>을 눌러 들어가요. <b>+ 탭 추가</b>로 보드(분류별 카드) · 갤러리(미리보기 카드) · 문서(일반 페이지) 탭을 만들 수 있고, 탭은 두 번 눌러 이름을 바꾸거나 끌어서 순서를 바꿔요.
-    페이지 카드를 다른 탭 위에 끌어다 놓으면 그 탭으로 옮겨져요. 페이지 안에는 텍스트 · 목록 · 체크 · 표 · 이미지(Ctrl+V) · 링크를 넣을 수 있어요. 문서 탭은 평소엔 읽기 화면이고, <b>편집</b>을 눌러야 고칠 수 있어요.</p>
+    페이지 카드를 다른 탭 위에 끌어다 놓으면 그 탭으로 옮겨져요. 페이지 안에는 텍스트 · 목록 · 체크 · 표 · 이미지(Ctrl+V) · 링크를 넣을 수 있어요. 문서 탭은 맨 아래 <b>+ 페이지 추가</b>로 페이지를 아래로 쌓아 가며 만들 수 있고, 평소엔 읽기 화면이라 <b>편집</b>을 눌러야 고칠 수 있어요. 탭에 마우스를 올리면 나오는 <b>✕</b>로 탭을 지워요.</p>
   <div id="sections"></div>
 </div>
 
@@ -7278,17 +7306,21 @@ function defaults() {
       { id: uid(), type: "board", title: "업무 매뉴얼",
         cols: [["전체 매뉴얼", "gray"], ["매장비서 관련", "orange"], ["관리자", "blue"], ["기사", "green"], ["상점", "pink"]].map(([name, color]) => ({ id: uid(), name, color })) },
       { id: uid(), type: "gallery", title: "확인 하세요!" },
-      { id: uid(), type: "doc", title: "업무 확인", blocks: [{ id: uid(), t: "h", v: "목요일에 확인해야 할 것" }, { id: uid(), t: "bullet", v: "" }] },
+      { id: "doc0", type: "doc", title: "업무 확인" },
     ],
-    pages: [],
+    pages: [{ id: uid(), sec: "doc0", col: "", title: "업무 확인", icon: "", notes: [], at: Date.now(),
+              blocks: [{ id: uid(), t: "h", v: "목요일에 확인해야 할 것" }, { id: uid(), t: "bullet", v: "" }] }],
   };
 }
+let migrated = false;   // 예전 문서 탭 내용을 페이지로 옮겼으면 한 번 저장
 function normalize(d) {
   if (!d || typeof d !== "object" || !Array.isArray(d.sections)) return defaults();
-  return {
+  const oldDocs = [];
+  const out = {
     sections: d.sections.map(s => {
       const o = { id: s.id || uid(), type: ["gallery", "doc"].includes(s.type) ? s.type : "board", title: s.title ?? "" };
-      if (o.type === "doc") o.blocks = (Array.isArray(s.blocks) && s.blocks.length ? s.blocks : [{ t: "text", v: "" }]).map(b => Object.assign({ id: uid() }, b));
+      if (o.type === "doc" && Array.isArray(s.blocks) && s.blocks.some(b => (b.t !== "text" && b.t !== "bullet") || String(b.v || "").trim()))   // 예전 형식: 문서 탭 하나에 내용 하나 → 첫 페이지로
+        oldDocs.push({ id: "doc-" + o.id, sec: o.id, col: "", title: o.title || "문서", icon: "", blocks: s.blocks, notes: [], at: Date.now() });
       if (o.type === "board") o.cols = (Array.isArray(s.cols) ? s.cols : []).map(c => ({ id: c.id || uid(), name: c.name ?? "", color: COLORS[c.color] ? c.color : "gray" }));
       return o;
     }),
@@ -7298,6 +7330,12 @@ function normalize(d) {
       notes: Array.isArray(p.notes) ? p.notes : [], at: p.at || Date.now(),
     })),
   };
+  oldDocs.forEach(od => {
+    if (out.pages.some(x => x.id === od.id)) return;
+    out.pages.splice(out.pages.findIndex(x => x.sec === od.sec) >>> 0, 0, Object.assign(od, { blocks: od.blocks.map(b => Object.assign({ id: uid() }, b)) }));   // 그 문서 탭의 맨 앞에
+    migrated = true;
+  });
+  return out;
 }
 let D = normalize(loadJSON(LS_DATA, null));
 let cloudReady = false;
@@ -7383,32 +7421,76 @@ function readHtml(blocks) {   // 읽기 전용 화면
   }).join("");
   return out || `<div class="r-empty">아직 내용이 없어요. 오른쪽 위 <b>편집</b>을 눌러 적어 주세요.</div>`;
 }
-function editDoc(id) {
-  editing.add(id); render();
-  const o = SEC(id); if (o) focusBlock("s:" + id, o.blocks.length - 1, true);
+/* 문서 탭: 왼쪽에 페이지 목록, 오른쪽에 고른 페이지 (평소엔 읽기 화면, 편집을 눌러야 고침) */
+let docSel = loadJSON("memo_docsel", {}) || {};   // 문서 탭마다 마지막으로 본 페이지
+function docPages(s) { return D.pages.filter(p => p.sec === s.id); }
+function selDoc(s) { const list = docPages(s); return list.find(p => p.id === docSel[s.id]) || list[0] || null; }
+function pickDoc(sid, pid) {
+  docPages(SEC(sid) || { id: sid }).forEach(x => { if (editing.has(x.id) && x.id !== pid) finishDoc(x.id); });
+  docSel[sid] = pid; try { localStorage.setItem("memo_docsel", JSON.stringify(docSel)); } catch (e) {}
+  render();
 }
-function doneDoc(id) { editing.delete(id); render(); flash("저장했어요"); }
+function addDoc(sid) {   // 맨 아래에 새 페이지 (편집 상태로)
+  const pg = { id: uid(), sec: sid, col: "", title: "", icon: "", blocks: [{ id: uid(), t: "text", v: "" }], notes: [], at: Date.now() };
+  [...editing].forEach(id => { if (id !== pg.id && P(id) && P(id).sec === sid) finishDoc(id); });
+  D.pages.push(pg); editing.add(pg.id); save(); render();
+  const box = document.querySelector(`.docsec[data-k="p:${pg.id}"]`);
+  if (box) { box.scrollIntoView({ behavior: "smooth", block: "center" }); box.querySelector(".dtitle-in").focus(); }
+}
+function editDoc(id) {
+  const pg0 = P(id); [...editing].forEach(x => { if (x !== id && P(x) && pg0 && P(x).sec === pg0.sec) finishDoc(x); });   // 한 번에 한 페이지만 편집
+  editing.add(id); render();
+  const pg = P(id); if (pg) focusBlock("p:" + id, pg.blocks.length - 1, true);
+}
+function finishDoc(id) {   // 편집 끝 — 아무것도 안 쓴 새 페이지는 버림
+  editing.delete(id);
+  const pg = P(id); if (pg && isEmpty(pg)) { D.pages = D.pages.filter(x => x !== pg); save(); return false; }
+  return true;
+}
+function doneDoc(id) { const kept = finishDoc(id); render(); if (kept) flash("저장했어요"); }
+function pSetId(id, key, v) {
+  const pg = P(id); if (!pg) return; pg[key] = v; touch("p:" + id);
+  const el = document.querySelector(`.ditem[data-id="${id}"] .tt`); if (el) el.textContent = pg.title || "제목 없음";
+  if (key === "icon") { const ic = document.querySelector(`.ditem[data-id="${id}"] .ic`); if (ic) ic.innerHTML = v ? esc(v) : '<i class="ti ti-file-text"></i>'; }
+}
 function secTools(s, i, n) {
-  const doc = s.type === "doc", on = editing.has(s.id);
+  if (s.type === "doc") return "";
   const order = `<button class="ibtn" onclick="moveSec('${s.id}',-1)" ${i === 0 ? "disabled" : ""} title="탭을 앞으로"><i class="ti ti-arrow-left"></i></button>`
     + `<button class="ibtn" onclick="moveSec('${s.id}',1)" ${i === n - 1 ? "disabled" : ""} title="탭을 뒤로"><i class="ti ti-arrow-right"></i></button>`
     + `<button class="ibtn danger" onclick="delSection('${s.id}')" title="이 탭 삭제"><i class="ti ti-trash"></i> 탭 삭제</button>`;
-  if (!doc) return order;
-  return on ? order + `<button class="ibtn primary" onclick="doneDoc('${s.id}')" title="편집 끝내기 (Esc)"><i class="ti ti-check"></i> 완료</button>`
-            : `<button class="ibtn edit" onclick="editDoc('${s.id}')" title="편집하기 (문서를 두 번 눌러도 돼요)"><i class="ti ti-pencil"></i> 편집</button>`;
+  return order;
 }
-function docHtml(s, q) {
-  const found = q ? D.pages.filter(p => p.sec === s.id && match(p, q)) : [];
-  return (editing.has(s.id) ? `<div class="docsec editing" data-sec="${s.id}">${blocksHtml("s:" + s.id)}</div>`
-                            : `<div class="docsec read" data-sec="${s.id}" ondblclick="if(!event.target.closest('a,button,img'))editDoc('${s.id}')">${readHtml(s.blocks)}</div>`)
-    + (found.length ? `<div class="docfound"><span>이 문서 안에서 찾은 페이지</span>${found.map(cardHtml).join("")}</div>` : "");
+function docHtml(s, q) {   // 문서 탭: 페이지를 아래로 차곡차곡 쌓아서 보여줌
+  const list = q ? docPages(s).filter(p => match(p, q)) : docPages(s);
+  const ic = x => x.icon ? `<span>${esc(x.icon)}</span>` : "";
+  const card = pg => {
+    const grip = `<span class="dgrip" draggable="true" ondragstart="dragStart(event,'${pg.id}')" title="끌어서 페이지 순서 바꾸기"><i class="ti ti-grip-vertical"></i></span>`;
+    const drop = `data-id="${pg.id}" ondragover="dragOverCard(event)" ondragleave="dragLeave(event)" ondrop="dropOnCard(event,'${pg.id}')"`;
+    if (editing.has(pg.id)) return `<div class="docsec editing" data-k="p:${pg.id}" ${drop}>
+      <div class="dhead">${grip}<input class="ed-icon" value="${esc(pg.icon)}" placeholder="📄" maxlength="4" title="아이콘 — 이모지 하나 (Windows: 윈도우키 + .)" oninput="pSetId('${pg.id}','icon',this.value)">
+        <input class="dtitle-in" value="${esc(pg.title)}" placeholder="페이지 제목" oninput="pSetId('${pg.id}','title',this.value)" onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();focusBlock('p:${pg.id}',0)}">
+        <span class="dat">${fmtAt(pg.at)} 수정</span>
+        <button class="ibtn danger" onclick="delPage('${pg.id}')" title="이 페이지 삭제"><i class="ti ti-trash"></i> 페이지 삭제</button>
+        <button class="ibtn primary" onclick="doneDoc('${pg.id}')" title="편집 끝내기 (Esc)"><i class="ti ti-check"></i> 완료</button></div>
+      ${blocksHtml("p:" + pg.id)}</div>`;
+    return `<div class="docsec read" ${drop} ondblclick="if(!event.target.closest('a,button,img,.dgrip'))editDoc('${pg.id}')">
+      <div class="dhead">${grip}<div class="dtitle">${ic(pg)}${pg.title.trim() ? esc(pg.title) : '<span style="color:var(--faint)">제목 없음</span>'}</div>
+        <span class="dat">${fmtAt(pg.at)} 수정</span>
+        <button class="ibtn edit" onclick="editDoc('${pg.id}')" title="편집하기 (내용을 두 번 눌러도 돼요)"><i class="ti ti-pencil"></i> 편집</button>
+        <button class="ibtn danger" onclick="delPage('${pg.id}')" title="이 페이지 삭제"><i class="ti ti-trash"></i> 페이지 삭제</button></div>
+      ${readHtml(pg.blocks)}</div>`;
+  };
+  return `<div class="docstack" data-sec="${s.id}" data-col="" ondragover="dragOverList(event)" ondragleave="dragLeave(event)" ondrop="dropOnList(event)">
+      ${list.length ? list.map(card).join("") : `<div class="docsec read"><div class="r-empty">${q ? "찾은 페이지가 없어요." : "아직 페이지가 없어요. 아래 <b>+ 페이지 추가</b>를 눌러 만들어 주세요."}</div></div>`}
+    </div>
+    ${q ? "" : `<button class="dadd2" onclick="addDoc('${s.id}')"><i class="ti ti-plus"></i> 페이지 추가</button>`}`;
 }
-function secCount(s) { return s.type === "doc" ? "" : D.pages.filter(p => p.sec === s.id).length; }
+function secCount(s) { return D.pages.filter(p => p.sec === s.id).length; }
 function renderNav() {
   const q = query();
   document.getElementById("gnav").innerHTML = `<div class="ttabs">${D.sections.map(s => `<button class="ttab${s.id === cur && !q ? " on" : ""}" draggable="true" data-sec="${s.id}"
       onclick="pickSec('${s.id}')" ondblclick="renameSec('${s.id}')" ondragstart="tabDragStart(event,'${s.id}')" ondragover="tabDragOver(event,'${s.id}')" ondragleave="tabDragLeave(event)" ondrop="tabDrop(event,'${s.id}')"
-      title="누르면 이 탭으로 · 두 번 누르면 이름 바꾸기 · 끌어서 순서 바꾸기"><i class="ti ${KIND[s.type][0]}"></i>${esc(s.title || "제목 없음")}${secCount(s) !== "" ? `<span class="n">${secCount(s)}</span>` : ""}</button>`).join("")}</div>
+      title="누르면 이 탭으로 · 두 번 누르면 이름 바꾸기 · 끌어서 순서 바꾸기"><i class="ti ${KIND[s.type][0]}"></i>${esc(s.title || "제목 없음")}<span class="n">${secCount(s)}</span><span class="tx" onclick="event.stopPropagation();delSection('${s.id}')" title="이 탭 삭제"><i class="ti ti-x"></i></span></button>`).join("")}</div>
     <span class="tadd-wrap"><button class="tadd" onclick="toggleAddMenu(event)"><i class="ti ti-plus"></i> 탭 추가</button></span>`;
 }
 function pickSec(id) {
@@ -7417,8 +7499,7 @@ function pickSec(id) {
   render(); window.scrollTo(0, 0);
 }
 function renameSec(id) {
-  const s0 = SEC(id); if (s0 && s0.type === "doc" && !editing.has(id)) editing.add(id);
-  if (cur !== id) pickSec(id); else render();
+  if (cur !== id) pickSec(id);
   const el = document.querySelector(`#sec-${id} .sec-title`); if (el) { el.focus(); el.select(); }
 }
 function toggleAddMenu(e) {
@@ -7463,13 +7544,12 @@ function render() {
   if (!SEC(cur)) cur = (D.sections[0] || {}).id || null;
   renderNav();
   const idx = s => D.sections.indexOf(s);
-  const shown = q ? D.sections.filter(s => s.type === "doc" ? D.pages.some(p => p.sec === s.id && match(p, q)) || match({ title: s.title, blocks: s.blocks, notes: [] }, q) : D.pages.some(p => p.sec === s.id && match(p, q)))
+  const shown = q ? D.sections.filter(s => D.pages.some(p => p.sec === s.id && match(p, q)))
                   : D.sections.filter(s => s.id === cur);
   if (!n) { document.getElementById("sections").innerHTML = `<div class="notabs">아직 탭이 없어요. 위의 <b>+ 탭 추가</b>를 눌러 만들어 주세요.</div>`; return; }
   document.getElementById("sections").innerHTML = (q && !shown.length ? `<p class="nores">'${esc(q)}' 검색 결과가 없어요.</p>` : "") + shown.map(s => `<section class="section" id="sec-${s.id}">
       <div class="sec-head">
-        <input class="sec-title" value="${esc(s.title)}" placeholder="탭 이름" title="눌러서 탭 이름 바꾸기"${s.type === "doc" && !editing.has(s.id) ? " readonly" : ""} oninput="secSet('${s.id}',this.value);renderNav()" onkeydown="if(event.key==='Enter')this.blur()">
-        <span class="sec-kind"><i class="ti ${KIND[s.type][0]}"></i>${KIND[s.type][1]}</span>
+        <input class="sec-title" value="${esc(s.title)}" placeholder="탭 이름" title="눌러서 탭 이름 바꾸기" oninput="secSet('${s.id}',this.value);renderNav()" onkeydown="if(event.key==='Enter')this.blur()">
         <div class="sec-tools">
           ${secTools(s, idx(s), n)}
         </div>
@@ -7579,7 +7659,7 @@ function closeEd() {
 function delPage(id) {
   const p = P(id); if (!p) return;
   if (!confirm(`'${p.title || "제목 없음"}' 페이지를 삭제할까요?`)) return;
-  D.pages = D.pages.filter(x => x.id !== id);
+  D.pages = D.pages.filter(x => x.id !== id); editing.delete(id);
   openId = null; document.getElementById("ov").hidden = true; document.body.style.overflow = "";
   save(); render();
 }
@@ -7602,9 +7682,13 @@ function blocksHtml(k) {
     <div class="addbar"><span class="lb">추가</span>${ADD_TYPES.map(([t, ic, l]) => `<button onclick="addBlock('${k}','${t}')"><i class="ti ${ic}"></i>${l}</button>`).join("")}</div>`;
 }
 function rerender(k) {
-  if (k[0] === "p") { renderEd(); return; }
-  const box = document.querySelector(`.docsec[data-sec="${k.slice(2)}"]`);
-  if (box) { box.innerHTML = blocksHtml(k); box.querySelectorAll("textarea").forEach(autosize); }
+  if (k[0] === "p" && openId === k.slice(2)) { renderEd(); return; }
+  const box = document.querySelector(`.docsec.editing[data-k="${k}"]`);
+  if (!box) { render(); return; }
+  const blocks = box.querySelector(".blocks"), bar = box.querySelector(".addbar");
+  const tmp = document.createElement("div"); tmp.innerHTML = blocksHtml(k);
+  blocks.replaceWith(tmp.children[0]); bar.replaceWith(tmp.children[0]);
+  box.querySelectorAll("textarea").forEach(autosize);
 }
 function renderEd() {
   const p = P(openId); if (!p) return;
@@ -7662,7 +7746,7 @@ function blockHtml(k, b, i, n) {
 }
 function autosize(el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; }
 function touch(k) {
-  if (k[0] === "p") { const p = OWN(k); if (p) { p.at = Date.now(); const el = document.getElementById("edAt"); if (el) el.textContent = fmtAt(p.at) + " 수정"; } }
+  if (k[0] === "p") { const p = OWN(k); if (p) { p.at = Date.now(); const el = openId === p.id ? document.getElementById("edAt") : document.querySelector(`.docsec[data-k="${k}"] .dat`); if (el) el.textContent = fmtAt(p.at) + " 수정"; } }
   save();
 }
 function pSet(key, v) { const p = P(openId); if (!p) return; p[key] = v; touch("p:" + p.id); }
@@ -7753,8 +7837,8 @@ function setLink(k, i, v) {   // 페이지 링크: 있는 페이지 고르기 �
     const title = prompt("새 페이지 제목을 적어 주세요"); if (title === null || !title.trim()) { rerender(k); return; }
     const host = k[0] === "p" ? { sec: o.sec, col: o.col } : { sec: o.id, col: "" };   // 문서 묶음에서 만든 페이지는 그 문서 안에만 보여요
     const p = { id: uid(), sec: host.sec, col: host.col, title: title.trim(), icon: "", blocks: [{ id: uid(), t: "text", v: "" }], notes: [], at: Date.now() };
-    D.pages.push(p); b.pid = p.id; touch(k); rerender(k);
-    if (k[0] === "s") render();
+    D.pages.push(p); b.pid = p.id; touch(k);
+    if (openId === o.id) rerender(k); else render();   // 문서 탭이면 왼쪽 목록에도 바로 보이게
     return;
   }
   b.pid = v; touch(k); rerender(k);
@@ -7790,9 +7874,9 @@ function compress(file) {   // 가로 1400px 까지 줄여서 jpg 로 (저장 �
 function targetOf(el) {   // 붙여넣기 · 끌어다 놓기가 들어갈 곳 (페이지 창 · 편집 중인 문서)
   if (openId) return "p:" + openId;
   const d = el && el.closest && el.closest(".docsec.editing");
-  if (d) return "s:" + d.dataset.sec;
-  const s = SEC(cur);
-  return s && s.type === "doc" && editing.has(s.id) ? "s:" + s.id : null;
+  if (d) return d.dataset.k;
+  const any = document.querySelector(".docsec.editing");   // 칸을 누르지 않아도 편집 중인 페이지로
+  return any ? any.dataset.k : null;
 }
 async function addFiles(files, k) {
   k = k || imgTarget || (openId ? "p:" + openId : null); imgTarget = null;
@@ -7814,7 +7898,7 @@ document.addEventListener("paste", e => {
   const k = targetOf(e.target);
   if (!k) {   // 읽기 화면에서 이미지를 붙여넣으면 안내만
     const s = SEC(cur), hasImg = [...e.clipboardData.items || []].some(it => it.kind === "file" && /^image\//.test(it.type));
-    if (s && s.type === "doc" && hasImg && !openId) flash("오른쪽 위 '편집'을 누른 뒤 붙여넣어 주세요");
+    if (s && s.type === "doc" && hasImg && !openId) flash("오른쪽 위 '편집'을 누른 뒤 붙여넣어 주세요");   // 읽기 화면
     return;
   }
   const files = [...e.clipboardData.items || []].filter(it => it.kind === "file" && /^image\//.test(it.type)).map(it => it.getAsFile()).filter(Boolean);
@@ -7861,7 +7945,7 @@ document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
   const lb = document.querySelector(".lightbox"); if (lb) { lb.remove(); return; }
   if (openId) closeEd();
-  else if (editing.has(cur)) doneDoc(cur);
+  else { const d = document.querySelector(".docsec.editing"); if (d) doneDoc(d.dataset.k.slice(2)); }
 });
 function flash(msg) {
   let el = document.getElementById("flash");
@@ -7905,9 +7989,11 @@ async function loadCloud() {
     if (error) throw error;
     cloudReady = true;
     if (data && data.data) {
+      migrated = false;
       D = normalize(data.data);
       try { localStorage.setItem(LS_DATA, JSON.stringify(D)); } catch (e) {}
       setCloud("ok");
+      if (migrated) { migrated = false; await pushNow(); }
     } else await pushNow();   // 클라우드에 아직 없으면 지금 내용(기본 묶음)을 올림
     if (!openId) render();
   } catch (e) { console.warn("업무 관련 정리 불러오기 실패:", e.message || e); setCloud("err"); }
